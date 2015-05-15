@@ -16,19 +16,39 @@
 </head>
 <body>
 
-<div>
-	<div id="pureCanvas" style="width: 600px; height: 400px; border: 1px solid; float: left;"></div>
+<div style="width: 50px; height: 400px; border: 1px solid; float: left;">
+
+</div>
+<div style="float: left;">
+	<div id="pureCanvas" style="width: 600px; height: 400px; border: 1px solid;"></div>
+</div>
+<div id="purePallete" style="border: 1px solid; width: 120px; height: 400px; float: left;" >
+	<button type="button" id="cursor" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Cursor">커서</button>
+	<button type="button" id="handCursor" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="HandCursor">핸드커서</button>
+	<button type="button" id="ballPen" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="BallPen">볼펜</button>
+	<button type="button" id="Highlighter" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Highlighter">형광펜</button>
+	<button type="button" id="StraightLine" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="StraightLine">직선</button>
+	<button type="button" id="Rectangle" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Rectangle">사각형</button>
+	<button type="button" id="Circle" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Circle">원</button>
+	<button type="button" id="Triangle" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Triangle">삼각형</button>
 	
-	<div id="purePallete" style="border: 1px solid; width: 60px; height: 400px; float: left;" >
-		<button type="button" id="cursor" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Cursor">커서</button>
-		<button type="button" id="handCursor" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="HandCursor">핸드커서</button>
-		<button type="button" id="ballPen" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="BallPen">볼펜</button>
-		<button type="button" id="Highlighter" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Highlighter">형광펜</button>
-		<button type="button" id="mousePointer" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="MousePointer">마우스포인터</button>
-		
-		<input type="color" id="stokeStyle" value="#000000" data-pure-canvas-option='toolkit' data-pure-canvas-type='strokeStyle'>
-		<input type="range" id="lineWidth" value="5" min="1" max="50" data-pure-canvas-option='toolkit' data-pure-canvas-type='lineWidth'>
-	</div>
+	<button type="button" id="CheckPoint" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="CheckPoint">체크포인트</button>
+	<button type="button" id="HighlightPoint" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="HighlightPoint">강조포인트</button>
+	<button type="button" id="mousePointer" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="MousePointer">마우스포인터</button>
+	
+	<button type="button" id="eraser" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Eraser">지우개</button>
+	<button type="button" id="clearAll" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="ClearAll">전체지우기</button>
+	
+	<input type="color" id="stokeStyle" value="#000000" data-pure-canvas-option='toolkit' data-pure-canvas-type='strokeStyle'>
+	선굵기: <input type="range" id="lineWidth" value="5" min="1" max="50" data-pure-canvas-option='toolkit' data-pure-canvas-type='lineWidth'>
+	
+	<br>
+	<input type="text" value="http://image.slidesharecdn.com/phpwebappsecurity-121020015437-phpapp02/95/php-web-app-security-eng-11-638.jpg?cb=1350698210">
+	<button type="button" id="backgroundImage" data-pure-canvas-option='setting' data-pure-canvas-type='backgroundImage'>배경이미지 적용</button>
+	<br>
+	
+	비율: <input type="range" id="rate" value="100" min="10" max="200" step="10" data-pure-canvas-option='setting' data-pure-canvas-type='resizeType' data-pure-canvas-value="rate">
+	<button type="button" id="page" data-pure-canvas-option='setting' data-pure-canvas-type='resizeType' data-pure-canvas-value="page">쪽맞춤</button>
 </div>
 </body>
 </html>
