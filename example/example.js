@@ -1,5 +1,8 @@
 $(document).ready(function(){
 	$("#pureCanvas").pureCanvas({
+		setting: {
+			resizeType: 'page'
+		},
 		toolkit: {
 			style: {
 				strokeStyle: 'rgba(255,0,0,1)'
@@ -7,7 +10,7 @@ $(document).ready(function(){
 		}
 	});
 	
-	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', 'https://www.google.co.kr/images/nav_logo195.png');
+	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', 'http://thimg.todayhumor.co.kr/upfile/201505/14319062302vK8aFBWBHTP.jpg');
 	
 	var total = 0;
 	var index = 0;
@@ -37,11 +40,18 @@ $(document).ready(function(){
 			}
 		}
 		
+		data.eventType = 'draw';
 		
+		send(data);
 	});
 	
 	$("#pureCanvas").on('show.bg.pureCanvas', function(e){
 		console.log(e);
+		
+		var data = e.imageData;
+		data.eventType = 'bg';
+		
+		send(data);
 	});
 	
 	$("#pureCanvas").on('canvas-resize.pureCanvas', function(e){
@@ -50,7 +60,47 @@ $(document).ready(function(){
 	
 	$("#pureCanvas").on('scroll-move.pureCanvas', function(e){
 		console.log(e);
+		
+		var data = e.scrollData;
+		data.eventType = 'scroll';
+		
+		send(data);
 	});
+	
+	$("#pureCanvas").on('history.pureCanvas', function(e){
+		console.log(e);
+		
+		var data = e.historyData;
+		data.eventType = 'history';
+		
+		send(data);
+	});
+	
+	
+	
+	$("#rate").on("input", function(){
+		var $this = $(this);
+		
+		var data = {
+			eventType: 'zoom',
+			type: 'rate',
+			rateVal: $this.val()
+		}
+		
+		send(data);
+	});
+	
+	$("#page").on("click", function(){
+		var $this = $(this);
+		
+		var data = {
+			eventType: 'zoom',
+			type: 'page',
+		}
+		
+		send(data);
+	});
+	
 	
 	$("[data-pure-canvas-option]").on('click input change', function(e){
 		var $this = $(this);
@@ -92,5 +142,100 @@ $(document).ready(function(){
 		
 		$("#pureCanvas").css({width: $(window).width() - 250, height: $(window).height() - 50});
 	});
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	var ws = null;
+
+	connect = function(){
+		if(ws == null){
+			ws = new WebSocket('ws://172.16.34.77:9090/testerweb/ws/default');
+			
+			
+			ws.onopen = function(){
+				console.log('Opened!');
+			}
+			
+			ws.onmessage = function(messageEvent){
+				//var view = document.getElementById('view')
+				//view.value += '\n' + messageEvent.data;
+				var msg = JSON.parse(messageEvent.data);
+				console.log(msg);
+				var canvasId = $("#pureCanvas").data('pure.pureCanvas').options.setting.id;
+				
+				if(canvasId == msg.id){
+					console.log('is Me', canvasId, msg.id);
+					return;
+				}
+				
+				if(msg.eventType === 'draw'){
+					$("#pureCanvas").pureCanvas('toolkit', 'draw', msg);
+				}
+				else if(msg.eventType === 'bg'){
+					$("#pureCanvas").pureCanvas('setting', 'backgroundImage', msg.imageSrc);
+				}
+				
+				else if(msg.eventType === 'zoom'){
+					$("#pureCanvas").pureCanvas('setting', 'resizeType', msg);
+				}
+				
+				else if(msg.eventType === 'scroll'){
+					$("#pureCanvas").pureCanvas('setting', 'scroll', msg);
+				}
+				
+				else if(msg.eventType === 'history'){
+					$("#pureCanvas").pureCanvas('history', msg);
+				}
+			}
+			
+			ws.onclose = function(){
+				console.log('Closed!');
+			}
+			console.log(ws);
+		}else{
+			console.log('이미 연결되어 있음.');
+		}
+	}
+
+	send = function(msg){
+		if(ws != null){
+			/* var msg = document.getElementById('msg').value;
+			if(msg.length > 0){
+				ws.send(msg);
+			} */
+			ws.send(JSON.stringify(msg));
+		}else{
+			console.log('연결되어 있지 않음.');
+		}
+	}
+
+	closeEvent = function(){
+		if(ws != null){
+			ws.close();
+			ws = null;
+		}else{
+			console.log('연결되어 있지 않음.');
+		}
+	}
+	connect();	
 	
 });
