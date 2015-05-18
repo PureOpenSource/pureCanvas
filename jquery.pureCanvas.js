@@ -15,16 +15,20 @@
 	 */
 	
 	var PureCanvas = function(element, options){
+		// PureCanvas Div element 정보(createCanvas에서 추가됨)
 		this.$element = $(element);
 		this.$main = null;
 		this.$container = null;
+		// 설정 정보
 		this.options = options;
 		
 		// Canvas ID 지정
 		if(!this.options.setting.id) this.options.setting.id = this.createUUID.call(this); 
 		// Canvas 정보
 		this.canvasInfo = {};
-		
+		// background image 정보
+		this.imageInfo = {};
+		// Draw 히스터리 정보
 		this.historyInfo = {
 			index: -1,
 			drawData: []
@@ -39,38 +43,54 @@
 	PureCanvas.VERSION = '0.1-beta';
 
 	PureCanvas.DEFIN = {
+		// 사용자 옵션으로 호출 가능한 prototype
 		optionName: {
-			option: 'option',
+			// Toolkit 정보 설정
 			toolkit: 'toolkit',
+			// setting 정보 설정
 			setting: 'setting',
+			// Canvas resizing 작업 호출
 			resize: 'resize',
+			// draw undo, redo event
 			history: 'history',
-			draw: 'draw'
 		}
 	}
 	
 	// 사용자에 의해 설정 변경 가능한 항목
 	PureCanvas.DEFAULTS = {
-		debugLog: true,
-			
 		// Canvas의 설정 정보
 		setting: {
+			// 그리기 권한
 			authForDraw: true,
-			PointerForDraw: true,
+			// 그리기 권한이 없는 경우, 마우스 커스 모양
 			notAuthForDrawCursor: 'not-allowed',
 			
+			// 마우스포인터 사용 권한
+			pointerForDraw: true,
+			// 마우스포인터 클릭 시 전송 여부
 			pointerDownSend: true,
+			
+			// 화면 사이즈 설정 정보(page:쪽맞춤, rate:비율)
 			resizeType: 'rate',
+			// 화면 비율 정보(page일 경우 size에 맞게 계산, rate일 경우 입력 값) 1 = 100%
 			rateVal: 1,
+			
+			// 마우스포인터 전송 지연 시간(ms)
+			delayMousePoint: 5,
 		},
 		// Toolkit 정보
 		toolkit: {
+			// Toolkit Type, '$.pureCanvas.toolkit.type'에 정의된 것에 한함. 
 			type: 'Cursor',
+			// context style 설정
 			style: {
 				lineCap: 'round',
 				lineJoin: 'round',
+				// 선 색, 선택으로 채움색까지 사용함.
 				strokeStyle: "rgba(0,0,0,100)",
+				// 채움 색
 				fillStyle: "rgba(0,0,0,100)",
+				// 선 굴기
 				lineWidth: 5,
 			},
 		},
@@ -135,7 +155,7 @@
 				//$container.append($canvas);
 				
 				// Canvas 추가 정보 설정
-				data.type = $canvas.attr('data-pure-canvas');
+				data.type = key;
 				data.$canvas = $canvas;
 				data.canvas = $canvas.get(0);
 				data.context = $canvas.get(0).getContext('2d');
@@ -171,20 +191,21 @@
 				if(!setting.authForDraw){
 					return;
 				}
+				// Touch Event인 경우 처리
 				if(e.type.indexOf('touch') >= 0){
 					e.preventDefault();
 					e.isTouch = true;
 				}
 				
+				// 이벤트 분류
 				var type = e.type;
 				var callMethod = null;
-				
-				// 이벤트 분류
 				switch (type) {
 				case 'mousedown':
 				case 'touchstart':
 					callMethod = 'drawStart';
 					
+					// Touch가 아닌 경우(Mouse 인 경우) 왼쪽 클릭 만 허용함.
 					if(!e.isTouch && e.button !== 0){
 						return;
 					}
@@ -203,19 +224,31 @@
 					break;
 				}
 				
-				e.type = 'drawEvent-' + toolkit.type;
-				e.callMethod = callMethod;
-				e.eventType = type;
-				e.toolkitType = toolkit.type;
+				// 추가 이벤트 정보 설정
+				$.extend(e, {
+					type: 'drawEvent-' + toolkit.type,
+					callMethod: callMethod,
+					eventType: type,
+					toolkitType: toolkit.type
+				});
 
 				//console.log(e.eventType, e.type, e.callMethod, e.timeStamp, e);
 				// PureCanvas Event 호출
-				$drawCanvas.trigger(e);
+				try{
+					$drawCanvas.trigger(e);
+				}catch(ex){
+					console.warn('drawEvent-%s event error. [%s]', toolkit.type, ex);
+				}
 			})
 		},
 		
+		/**
+		 * Loading Bar 설정
+		 */
 		loadingBar: function(option, message){
+			// Create & Show
 			if(!option || option === 'show'){
+				// loading bar 생성
 				if(!this.loadingBarDiv){
 					this.loadingBarDiv = $('<div></div>')
 						.attr('data-pure-canvas', 'loadingBar')
@@ -230,18 +263,18 @@
 				}
 				var messageBox = this.loadingBarDiv.data('messageBox');
 				
+				// 내용 변경
 				this.loadingBarDiv.css({width: this.$element.width(), height: this.$element.height()});
 				var top = (this.$element.height() / 2) - messageBox.height();
 				messageBox.css({'margin-top': top}).html(message);
 
+				// fade show
 				this.loadingBarDiv.fadeIn(500);
-			}else{
-				var THIS = this;
-				this.loadingBarDiv.fadeOut(500, function(){
-					// this = loadingBarDiv
-					//THIS.loadingBarDiv.remove();
-					//THIS.loadingBarDiv = null;
-				});
+			}
+			// Hide
+			else if(option === 'hide'){
+				// fade hide
+				this.loadingBarDiv.fadeOut(500);
 			}
 		},
 	});
@@ -250,13 +283,20 @@
 	 * Pure Canvas - Context Style Setting - 'toolkit' options 
 	 */
 	PureCanvas.prototype.toolkit = function(targetName, value){
-		this.contextStyle = this.toolkit.contextStyle;
+		// getter
+		if(!targetName && !value){
+			return this.options.toolkit;
+		}
+		if(targetName && !value){
+			return this.options.toolkit[targetName] ? this.options.toolkit[targetName] : undefined;
+		}
+		
+		// setter
 		return this.toolkit[targetName] ? this.toolkit[targetName].call(this, value) : undefined;
 	}	
 	$.extend(PureCanvas.prototype.toolkit, {
 		type: function(value){
 			var toolkit = this.options.toolkit;
-
 			var toolkitType = $.pureCanvas.toolkit.type[value];
 			
 			// 즉시 처리 로직 수행
@@ -274,27 +314,27 @@
 		},
 		lineWidth: function(value){
 			// Use : BallPen, highlighter, StraightLine, Rectangle
-			this.contextStyle('lineWidth', value);
+			this.toolkit.contextStyle.call(this, 'lineWidth', value);
 		},
 		lineCap: function(value){
 			// Use : BallPen, highlighter, StraightLine
 			// Style : butt, round, square
-			this.contextStyle('lineCap', value);
+			this.toolkit.contextStyle.call(this, 'lineCap', value);
 		},
 		lineJoin: function(value){
 			// Use : BallPen, highlighter
 			// Style : miter, round, bevel
-			this.contextStyle('lineJoin', value);
+			this.toolkit.contextStyle.call(this, 'lineJoin', value);
 		},
 		strokeStyle: function(value){
 			if(typeof value == 'string') value = {color: value, opacity: 100};
 			// Use : BallPen, highlighter, StraightLine, Circle, Triangle, Rectangle
-			this.contextStyle('strokeStyle', this.pureCanvasToolkit.hexToRgba(value.color, value.opacity));
+			this.toolkit.contextStyle.call(this, 'strokeStyle', this.pureCanvasToolkit.hexToRgba(value.color, value.opacity));
 		},
 		fillStyle: function(value){
 			if(typeof value == 'string') value = {color: value, opacity: 100};
 			// Use : BallPen, highlighter, StraightLine, Circle, Triangle, Rectangle
-			this.contextStyle('fillStyle', this.pureCanvasToolkit.hexToRgba(value.color, value.opacity));
+			this.toolkit.contextStyle.call(this, 'fillStyle', this.pureCanvasToolkit.hexToRgba(value.color, value.opacity));
 		},
 		contextStyle: function(styleName, value){
 			var toolkit = this.options.toolkit;
@@ -302,19 +342,24 @@
 			toolkit.style[styleName] = value;
 			console.debug('setting style [' + styleName + '] apply:' + toolkit.style[styleName] + ' , input:' + value);			
 		},
+		
 		draw: function(toolkitData){
-			if(typeof toolkitData != 'object'){
-				return;
-			}
+			if(typeof toolkitData != 'object') return;
 
-			var event = $.Event('drawEvent-' + toolkitData.type);
-			event.callMethod = 'draw';
-			event.eventType = 'draw.pureCanvas';
-			event.toolkitData = toolkitData;
-			event.toolkitType = toolkitData.type;
+			// 이벤트 생성 및 추가 정보 설정
+			var event = $.Event('drawEvent-' + toolkitData.type, {
+				callMethod: 'draw',
+				eventType: 'draw.pureCanvas',
+				toolkitData: toolkitData,
+				toolkitType: toolkitData.type,
+			});
 			
-			var $drawCanvas = this.canvasInfo.draw.$canvas;
-			$drawCanvas.trigger(event);
+			// draw canvas에 Event 호출
+			try{
+				this.canvasInfo.draw.$canvas.trigger(event);
+			}catch(ex){
+				console.warn('drawEvent-%s event error. [%s]', toolkitData.type, ex);
+			}
 		},
 	});
 	
@@ -322,6 +367,15 @@
 	 * Pure Canvas - Canvas Setting - 'setting' options 
 	 */	
 	PureCanvas.prototype.setting = function(targetName, value){
+		// getter
+		if(!targetName && !value){
+			return this.options.toolkit;
+		}
+		if(targetName && !value){
+			return this.options.setting[targetName] ? this.options.setting[targetName] : undefined;
+		}
+		
+		// setter
 		return this.setting[targetName] ? this.setting[targetName].call(this, value) : undefined;
 	}	
 	$.extend(PureCanvas.prototype.setting, {
@@ -351,7 +405,7 @@
 			var THIS = this;
 			
 			if(THIS.imageInfo && THIS.imageInfo.imgSrc === value){
-				console.debug('duplication. image.');
+				console.debug('duplication. image. ' + value);
 				return;
 			}
 			
@@ -360,9 +414,6 @@
 			var sDate = new Date();
 			this.loadingBar.call(this, 'show', 'Image Loading...');
 			image.onload = function(){
-				
-				var printWidth, printHeight;
-				
 				var imageWidth = image.width;
 				var imageHeight = image.height;
 				
@@ -374,25 +425,40 @@
 					}
 				});
 				
-				//THIS.canvasInfo.bg.context.drawImage(image, 0, 0, imageWidth, imageHeight);
-				
+				// 이미지 정보 저장
 				THIS.imageInfo = {
+					// 이미지 객체
 					image: image,
+					// 이미지 주소
 					imgSrc: value,
+					// 이미지 원본 가로 크기
 					orgImageWidth: imageWidth,
+					// 이미지 원본 세로 크기
 					orgImageHeight: imageHeight,
+					// re draw 여부
 					isSetting: true
 				}
 
-				THIS.$element.trigger({
-					type: 'show.bg.pureCanvas',
-					imageData: {imageSrc: value}
-				});
+				THIS.historyInfo = {
+					index: -1,
+					drawData: []
+				}
 				
+				// canvas resize 호출
 				THIS.resize();
 				
 				var eDate = new Date();
-				console.debug("image loading time: ", eDate - sDate);
+				console.debug("image loading time: %dms", eDate - sDate);
+
+				// 백그라운드 이미지 출력 완료 이벤트 발생
+				try{
+					THIS.$element.trigger({
+						type: 'show.bg.pureCanvas',
+						imageData: {imageSrc: value}
+					});					
+				}catch(ex){
+					console.warn('show.bg.pureCanvas event error. [%s]', ex);
+				}
 				
 				THIS.loadingBar.call(THIS, 'hide');
 			}
@@ -418,6 +484,7 @@
 				this.options.setting.rateVal = value.rateVal ? value.rateVal / 100 : 1;
 			}
 			
+			// canvas resize 호출
 			this.imageInfo.isSetting = true;
 			this.resize();
 			
@@ -434,13 +501,17 @@
 	 */
 	PureCanvas.prototype.resize = function(){
 		if(this.resize[this.options.setting.resizeType]){
-			var offset = this.resize[this.options.setting.resizeType].call(this)
-			this.resize.canvasResizeNDraw.call(this, offset.width, offset.height);
+			var data = this.resize[this.options.setting.resizeType].call(this)
+			this.resize.canvasResizeNDraw.call(this, data);
 		} 
 		
-		this.$element.trigger({
-			type: 'canvas-resize.pureCanvas'
-		});
+		try{
+			this.$element.trigger({
+				type: 'canvas-resize.pureCanvas'
+			});
+		}catch(ex){
+			console.warn('canvas-resize.pureCanvas event error. [%s]', ex);
+		}
 	}
 	$.extend(PureCanvas.prototype.resize, {
 		// 비율(%)
@@ -448,6 +519,7 @@
 			var imageInfo = this.imageInfo;
 			var rateVal = this.options.setting.rateVal;
 			
+			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
 			var width = imageInfo.orgImageWidth * rateVal;
 			var height = imageInfo.orgImageHeight * rateVal;
 			
@@ -457,25 +529,27 @@
 		//쪽맞춤
 		page: function(){
 			var imageInfo = this.imageInfo;
-			var rateVal = this.options.setting.rateVal;
 			
-			var elementWidth = this.$main.width();
-			var elementHeight = this.$main.height();
-			
-			var rateWidth = elementWidth / imageInfo.orgImageWidth;
-			var rateHeight = elementHeight / imageInfo.orgImageHeight;
-			
-			rateVal = (rateWidth > rateHeight) ? rateHeight : rateWidth;
+			// main div의 크기와 원본 이미지 크기로 비율 정보 계산
+			var rateWidth = this.$main.width() / imageInfo.orgImageWidth;
+			var rateHeight = this.$main.height() / imageInfo.orgImageHeight;
+			// 가로, 세로 중 비율 정보가 작은 값 사용
+			var rateVal = (rateWidth > rateHeight) ? rateHeight : rateWidth;
 			this.options.setting.rateVal = rateVal;
 			
+			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
 			var width = imageInfo.orgImageWidth * rateVal;
 			var height = imageInfo.orgImageHeight * rateVal;
 			
+			// 쪽맞춤일 경우 window.resize에 따라 이미지 크기가 변경됨으로 true 값 설정
 			imageInfo.isSetting = true;
 			return {width: width, height: height};
 		},
 		
-		canvasResizeNDraw: function(width, height){
+		canvasResizeNDraw: function(data){
+			var width = data.width;
+			var height = data.height;
+			
 			var imageInfo = this.imageInfo;
 			var rateVal = this.options.setting.rateVal;
 			
@@ -494,12 +568,10 @@
 				});
 
 				var mainCtx = this.canvasInfo.main.context;
-				var mainCanvas = this.canvasInfo.main.canvas;
 				var bgCtx = this.canvasInfo.bg.context;
-				var bgCanvas = this.canvasInfo.bg.canvas;
 				
 				// 메인의 draw data가 비율에 맞게 변경하여 다시 출력한다.
-				mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+				mainCtx.clearCanvas();
 				mainCtx.save();
 				mainCtx.setTransform(rateVal, 0, 0, rateVal, 0, 0);
 				mainCtx.drawImage(this.canvasInfo.view.canvas, 0, 0);
@@ -526,8 +598,8 @@
 	}
 	$.extend(PureCanvas.prototype, {
 		historyAdd: function(){
-			var canvas = this.canvasInfo.view;
-			var snapshot = canvas.context.getImageData(0, 0, canvas.canvas.width, canvas.canvas.height);
+			var ctx = this.canvasInfo.view.context;
+			var snapshot = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 			this.historyInfo.drawData[++this.historyInfo.index] = snapshot;
 			
 			while (this.historyInfo.index < this.historyInfo.drawData.length -1) {
@@ -536,12 +608,14 @@
 		},
 		
 		changeImage: function(){
-			var canvas = this.canvasInfo.view;
+			var ctx = this.canvasInfo.view.context;
+			// 초기 화면(clear)
 			if(this.historyInfo.index < 0){
-				canvas.context.clearRect(0, 0, canvas.canvas.width, canvas.canvas.height);
+				ctx.clearCanvas();
 			}else{
+				// 저장된 index 정보의 이미지로 그린다.
 				var snapshot = this.historyInfo.drawData[this.historyInfo.index];
-				canvas.context.putImageData(snapshot, 0, 0);
+				ctx.putImageData(snapshot, 0, 0);
 			}
 			
 			this.pureCanvasToolkit.mainCanvasChange(true);
@@ -549,28 +623,36 @@
 	});
 	$.extend(PureCanvas.prototype.history, {
 		next: function(isSend){
-			if(this.historyInfo.index < this.historyInfo.drawData.length - 1){
+			if(this.history.hasNext.call(this)){
 				this.historyInfo.index++;
 				this.changeImage();
 				
 				if(isSend){
-					this.$element.trigger({
-						type: 'history.pureCanvas',
-						historyData: {id: this.options.setting.id, action: 'next', index: this.historyInfo.index}
-					});
+					try{
+						this.$element.trigger({
+							type: 'history.pureCanvas',
+							historyData: {id: this.options.setting.id, action: 'next', index: this.historyInfo.index}
+						});
+					}catch (ex) {
+						console.warn('history.pureCanvas event error. [%s]', ex);
+					}
 				}
 			}
 		},
 		prev: function(isSend){
-			if(this.historyInfo.index >= 0){
+			if(this.history.hasPrev.call(this)){
 				--this.historyInfo.index;
 				this.changeImage();
 				
 				if(isSend){
-					this.$element.trigger({
-						type: 'history.pureCanvas',
-						historyData: {id: this.options.setting.id, action: 'prev', index: this.historyInfo.index}
-					});					
+					try{
+						this.$element.trigger({
+							type: 'history.pureCanvas',
+							historyData: {id: this.options.setting.id, action: 'prev', index: this.historyInfo.index}
+						});					
+					}catch(ex){
+						console.warn('history.pureCanvas event error. [%s]', ex);
+					}
 				}
 			}
 		},
@@ -582,15 +664,6 @@
 			return this.historyInfo.index >= 0;
 		}
 	});
-	
-	// options getter
-	PureCanvas.prototype.option = function(value){
-		if(!value){
-			return this.options;
-		}
-		
-		return this.options[value] ? this.options[value] : undefined; 
-	}
 	
 	/**
 	 * Pure Canvas - Plug-in Definition.
@@ -644,13 +717,9 @@
 		this.drawCanvas = this.canvasInfo.draw.canvas;
 		this.$drawCanvas = this.canvasInfo.draw.$canvas;
 		this.drawCtx = this.canvasInfo.draw.context;
-		this.drawTempCanvas = this.canvasInfo.drawTemp.canvas;
 		this.drawTempCtx = this.canvasInfo.drawTemp.context;
-		this.recvDrawCanvas = this.canvasInfo.recvDraw.canvas;
 		this.recvDrawCtx = this.canvasInfo.recvDraw.context;
-		this.viewCanvas = this.canvasInfo.view.canvas;
 		this.viewCtx = this.canvasInfo.view.context;
-		this.mainCanvas = this.canvasInfo.main.canvas;
 		this.mainCtx = this.canvasInfo.main.context;
 		
 		this.makeEvent();
@@ -683,16 +752,20 @@
 			
 			sendDrawData: function(points){
 				var data = {
-					type: this.toolkit.type,
+					type: this.getType(),
 					style: this.toolkit.style,
 					id: this.setting.id,
 					points: points ? (Object.prototype.toString.call(points) === "[object Array]") ? points.join(',') : points : null
 				}
 				
-				this.$element.trigger({
-					type: 'complate.draw.pureCanvas',
-					drawData: data,
-				});
+				try{
+					this.$element.trigger({
+						type: 'complate.draw.pureCanvas',
+						drawData: data,
+					});
+				}catch(ex){
+					console.warn('complate.draw.pureCanvas event error. [%s]', ex);
+				}
 			},
 			sendScrollData: function(e){
 				// Scroll bar의 크기를 구한다.
@@ -716,10 +789,14 @@
 					topRate: topRate
 				}
 				
-				this.$element.trigger({
-					type: 'scroll-move.pureCanvas',
-					scrollData: data
-				});
+				try{
+					this.$element.trigger({
+						type: 'scroll-move.pureCanvas',
+						scrollData: data
+					});
+				}catch (ex) {
+					console.warn('scroll-move.pureCanvas event error. [%s]', ex);
+				}
 			},
 			
 			recvScrollData: function(data){
@@ -730,6 +807,9 @@
 				// 이동한 위치의 비율을 계산한다.
 				var scrollLeft = scrollBarWidth * data.leftRate;
 				var scrollTop = scrollBarHeight * data.topRate;
+				
+				// event 중복 호출 방지, 수신으로 변경된 정보가 event를 타고 나가는것 방지
+				this.$main.data('pureCanvas-scroll', {type: 'recv', isTrigger: false});
 				
 				this.$main.scrollLeft(scrollLeft);
 				this.$main.scrollTop(scrollTop);
@@ -795,8 +875,7 @@
 					console.error("point is not length 2. " + pointSplit.length);
 					return;
 				}
-				var obj = {x:Number(pointSplit[0]), y:Number(pointSplit[1])};
-				return obj;
+				return {x:Number(pointSplit[0]), y:Number(pointSplit[1])};
 			},
 			
 			
@@ -812,9 +891,8 @@
 			    var g = parseInt(hex.substring(2,4), 16);
 			    var b = parseInt(hex.substring(4,6), 16);
 
-			    if(opacity==null) opacity = 100;
-			    var result = "rgba("+r+","+g+","+b+","+opacity/100+")";
-			    return result;
+			    if(!opacity) opacity = 100;
+			    return "rgba("+r+","+g+","+b+","+opacity/100+")";
 			},
 
 			/*
@@ -857,7 +935,7 @@
 				var target = data.copyTo;
 				
 				if(data.copyToPreClear){
-					target.context.clearRect(0, 0, target.canvas.width, target.canvas.height);
+					target.context.clearCanvas();
 				}
 				
 				target.context.save();
@@ -870,7 +948,7 @@
 				if(data.clear){
 					if(typeof data.clear == 'object'){
 						$.each(data.clear, function(index, element){
-							element.context.clearRect(0, 0, element.canvas.width, element.canvas.height);
+							element.context.clearCanvas();
 						});						
 					}
 				}	
@@ -894,7 +972,7 @@
 				}
 				
 				mainCtx.save();
-				mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+				mainCtx.clearCanvas();
 				mainCtx.setTransform(setting.rateVal, 0, 0, setting.rateVal, 0, 0);
 				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
 				mainCtx.globalCompositeOperation = 'source-over';
@@ -904,7 +982,6 @@
 				mainCtx.restore();
 			},
 		},
-		
 		
 		// $.pureCanvas.toolkit.addToolkit
 		addToolkit: function(toolkit){
@@ -923,7 +1000,7 @@
 		},
 		
 		// 굵기, 색에 따라그려질 정보를 출력한다.
-		drawForPrePoint: function(ctx, canvas, drawStyle, drawPoint){
+		drawForPrePoint: function(ctx, drawStyle, drawPoint){
 			var style = $.extend({}, drawStyle);
 			if(!drawStyle.isNotChange){
 				style.fillStyle = style.strokeStyle;
@@ -932,7 +1009,7 @@
 			
 			var point = this.getPointSplit(drawPoint);
 			
-			if(!this.isDrawing) ctx.clearRect(0, 0, canvas.width, canvas.height);
+			if(!this.isDrawing) ctx.clearCanvas();
 			
 			ctx.save();
 			ctx.beginPath();
@@ -951,11 +1028,11 @@
 			ctx.restore();			
 		},
 		
-		drawForArc: function(ctx, canvas, style, drawPoints){
+		drawForArc: function(ctx, style, drawPoints){
 			var point0 = this.getPointSplit(drawPoints[0]);
 			var point1 = this.getPointSplit(drawPoints[1]);
 			
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.clearCanvas();
 			
 			ctx.beginPath();
 			// 원의 반지름 구하기
@@ -980,13 +1057,13 @@
 				ctx.fill();
 			}
 		},
-		drawForLine: function(ctx, canvas, style, drawPoints){
+		drawForLine: function(ctx, style, drawPoints){
 			// drawForStraightLine
 			if(drawPoints.length <= 2){
 				ctx.beginPath();
 				
 				if(!style.isNotClear){
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.clearCanvas();
 				}
 				
 				var point0 = this.getPointSplit(drawPoints[0]);
@@ -1008,7 +1085,7 @@
 			}
 			
 			if(!style.isNotClear){
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.clearCanvas();
 			}
 			
 			ctx.beginPath();
@@ -1034,16 +1111,15 @@
 			ctx.quadraticCurveTo(pointi.x, pointi.y, pointi1.x, pointi1.y );
 			ctx.stroke();
 		},
-		drawForRect: function(ctx, canvas, style, drawPoints){
+		drawForRect: function(ctx, style, drawPoints){
 			var point1 = this.getPointSplit(drawPoints[0]);
 			var point2 = this.getPointSplit(drawPoints[1]);
 
 			if(!style.isNotClear){
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.clearCanvas();
 			}
 			
 			ctx.beginPath();
-			
 			ctx.lineWidth = style.lineWidth;
 			ctx.lineCap = 'round';
 			ctx.lineJoin = 'round';
@@ -1058,14 +1134,13 @@
 				ctx.rect(point1.x, point1.y, point2.x - point1.x, point2.y - point1.y);
 			}
 		},
-		drawForTriangle: function(ctx, canvas, style, drawPoints){
+		drawForTriangle: function(ctx, style, drawPoints){
 			var point0 = this.getPointSplit(drawPoints[0]);
 			var point1 = this.getPointSplit(drawPoints[1]);
 			
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.clearCanvas();
 			
 			ctx.beginPath();
-
 			ctx.moveTo(point1.x, point1.y);			
 			ctx.lineTo(point0.x - (point1.x - point0.x), point1.y);
 			ctx.lineTo(point0.x, point0.y - (point1.y - point0.y));
@@ -1125,6 +1200,14 @@
 				if(!THIS.isDrawing){
 					// Scroll Event의 과다 호출을 줄이기 위해 300ms 중지된 상태에서 이벤트를 호출한다.
 					clearTimeout(THIS.eventCaller);
+					
+					//{type: 'recv', isTrigger: false}
+					// scroll 수신 시 trigger 호출 방지
+					var data = THIS.$main.data('pureCanvas-scroll');
+					if(data && !data.isTrigger){
+						THIS.$main.removeData('pureCanvas-scroll');
+						return;
+					}
 					
 					THIS.eventCaller = setTimeout(function(){
 						THIS.sendScrollData(e);
@@ -1206,10 +1289,10 @@
 				this.points.push(e.point.org);
 				this.pointsRate.push(e.point.rate);				
 				
-				this.drawForLine(this.mainCtx, this.mainCanvas, drawStyle, this.points);
-				this.drawForLine(this.viewCtx, this.viewCanvas, drawTempStyle, this.pointsRate);
+				this.drawForLine(this.mainCtx, drawStyle, this.points);
+				this.drawForLine(this.viewCtx, drawTempStyle, this.pointsRate);
 			}
-			this.drawForPrePoint(this.drawCtx, this.drawCanvas, this.getCustomStyle(drawStyle), e.point.org);
+			this.drawForPrePoint(this.drawCtx, this.getCustomStyle(drawStyle), e.point.org);
 		},
 		drawEnd: function(e){
 			console.log(this.getType() + ' drawEnd');
@@ -1217,7 +1300,7 @@
 			this.sendDrawData(this.pointsRate);
 			
 			if(e.isTouch){
-				this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+				this.drawCtx.clearCanvas();
 			}
 			
 			this.$element.data('pure.pureCanvas').historyAdd();
@@ -1229,7 +1312,7 @@
 		drawOut: function(e){
 			console.log(this.getType() + ' drawOut');
 			
-			this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+			this.drawCtx.clearCanvas();
 		},
 		
 		getCustomStyleLine: function(style){
@@ -1257,7 +1340,7 @@
 			this.viewCtx.globalCompositeOperation = "destination-out";
 			this.mainCtx.globalCompositeOperation = "destination-out";
 			
-			this.drawForLine(this.viewCtx, this.viewCanvas, this.getCustomStyleLine(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForLine(this.viewCtx, this.getCustomStyleLine(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.mainCanvasChange();
 		},	
@@ -1285,7 +1368,7 @@
 		clearCanvas: function(){
 			$.each(this.canvasInfo, function(key, canvas){
 				if(canvas.clearView){
-					canvas.context.clearRect(0, 0, canvas.canvas.width, canvas.canvas.height);
+					canvas.context.clearCanvas();
 				}
 			});
 			this.mainCanvasChange();			
@@ -1324,11 +1407,11 @@
 					this.points.push(e.point.org);
 					this.pointsRate.push(e.point.rate);
 					
-					this.drawForLine(this.drawCtx, this.drawCanvas, drawStyle, this.points);
-					this.drawForLine(this.drawTempCtx, this.drawTempCanvas, drawTempStyle, this.pointsRate);					
+					this.drawForLine(this.drawCtx, drawStyle, this.points);
+					this.drawForLine(this.drawTempCtx, drawTempStyle, this.pointsRate);					
 				}
 			}
-			this.drawForPrePoint(this.drawCtx, this.drawCanvas, drawStyle, e.point.org);
+			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
 		},
 		drawEnd: function(e){
 			console.log(this.getType() + ' drawEnd');
@@ -1349,15 +1432,14 @@
 			console.log(this.getType() + ' drawOut');
 			
 			if(!this.isDrawing){
-				this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+				this.drawCtx.clearCanvas();
 			}
 		},
 		draw: function(e){
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForLine(this.recvDrawCtx, this.recvDrawCanvas, 
-					this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForLine(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1452,10 +1534,10 @@
 				this.points[1] = point.org;
 				this.pointsRate[1] = point.rate;
 				
-				this.drawForLine(this.drawCtx, this.drawCanvas, drawStyle, this.points);
-				this.drawForLine(this.drawTempCtx, this.drawTempCanvas, drawTempStyle, this.pointsRate);
+				this.drawForLine(this.drawCtx, drawStyle, this.points);
+				this.drawForLine(this.drawTempCtx, drawTempStyle, this.pointsRate);
 			}
-			this.drawForPrePoint(this.drawCtx, this.drawCanvas, drawStyle, e.point.org);
+			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
 			
 		},
 		drawEnd: function(e){
@@ -1478,7 +1560,7 @@
 			console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
-				this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+				this.drawCtx.clearCanvas();
 			}
 		},
 		
@@ -1491,7 +1573,7 @@
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForLine(this.recvDrawCtx, this.recvDrawCanvas, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForLine(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1539,10 +1621,10 @@
 				this.points[1] = point.org;
 				this.pointsRate[1] = point.rate;
 				
-				this.drawForRect(this.drawCtx, this.drawCanvas, drawStyle, this.points);
-				this.drawForRect(this.drawTempCtx, this.drawTempCanvas, drawTempStyle, this.pointsRate);
+				this.drawForRect(this.drawCtx, drawStyle, this.points);
+				this.drawForRect(this.drawTempCtx, drawTempStyle, this.pointsRate);
 			}
-			this.drawForPrePoint(this.drawCtx, this.drawCanvas, drawStyle, e.point.org);
+			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
 			
 		},
 		drawEnd: function(e){
@@ -1565,7 +1647,7 @@
 			console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
-				this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+				this.drawCtx.clearCanvas();
 			}
 		},
 		
@@ -1579,7 +1661,7 @@
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForRect(this.recvDrawCtx, this.recvDrawCanvas, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForRect(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1627,10 +1709,10 @@
 				this.points[1] = point.org;
 				this.pointsRate[1] = point.rate;
 				
-				this.drawForArc(this.drawCtx, this.drawCanvas, drawStyle, this.points);
-				this.drawForArc(this.drawTempCtx, this.drawTempCanvas, drawTempStyle, this.pointsRate);
+				this.drawForArc(this.drawCtx, drawStyle, this.points);
+				this.drawForArc(this.drawTempCtx, drawTempStyle, this.pointsRate);
 			}
-			this.drawForPrePoint(this.drawCtx, this.drawCanvas, drawStyle, e.point.org);
+			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
 			
 		},
 		drawEnd: function(e){
@@ -1653,7 +1735,7 @@
 			console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
-				this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+				this.drawCtx.clearCanvas();
 			}
 		},
 		
@@ -1667,7 +1749,7 @@
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForArc(this.recvDrawCtx, this.recvDrawCanvas, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForArc(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1715,10 +1797,10 @@
 				this.points[1] = point.org;
 				this.pointsRate[1] = point.rate;
 				
-				this.drawForTriangle(this.drawCtx, this.drawCanvas, drawStyle, this.points);
-				this.drawForTriangle(this.drawTempCtx, this.drawTempCanvas, drawTempStyle, this.pointsRate);
+				this.drawForTriangle(this.drawCtx, drawStyle, this.points);
+				this.drawForTriangle(this.drawTempCtx, drawTempStyle, this.pointsRate);
 			}
-			this.drawForPrePoint(this.drawCtx, this.drawCanvas, drawStyle, e.point.org);
+			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
 			
 		},
 		drawEnd: function(e){
@@ -1741,7 +1823,7 @@
 			console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
-				this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+				this.drawCtx.clearCanvas();
 			}
 		},
 		
@@ -1755,7 +1837,7 @@
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForTriangle(this.recvDrawCtx, this.recvDrawCanvas, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForTriangle(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1793,12 +1875,12 @@
 			this.points[0] = point.org;
 			this.pointsRate[0] = point.rate;
 			
-			this.drawForCheckPoint(this.drawCtx, this.drawCanvas, this.points);
+			this.drawForCheckPoint(this.drawCtx, this.points);
 		},
 		drawEnd: function(e){
 			console.log(this.getType() + ' drawEnd');
 			
-			this.drawForCheckPoint(this.drawTempCtx, this.drawTempCanvas, this.pointsRate);
+			this.drawForCheckPoint(this.drawTempCtx, this.pointsRate);
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.drawTemp,
@@ -1814,7 +1896,7 @@
 		drawOut: function(e){
 			console.log(this.getType() + ' drawOut');
 
-			this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+			this.drawCtx.clearCanvas();
 		},
 		
 		defaultStyle: {
@@ -1824,10 +1906,10 @@
 			strokeStyle: 'black',
 			fillStyle: 'red',			
 		},
-		drawForCheckPoint: function(ctx, canvas, drawPoints){
+		drawForCheckPoint: function(ctx, drawPoints){
 			var point = this.getPointSplit(drawPoints[0]);
 			
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.clearCanvas();
 			
 			ctx.beginPath();
 			ctx.moveTo(point.x - 10, point.y - 10);
@@ -1851,7 +1933,7 @@
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForCheckPoint(this.recvDrawCtx, this.recvDrawCanvas, this.getPointSplitList(toolkitData.points));
+			this.drawForCheckPoint(this.recvDrawCtx, this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1889,12 +1971,12 @@
 			this.points[0] = point.org;
 			this.pointsRate[0] = point.rate;
 			
-			this.drawForHighlightPoint(this.drawCtx, this.drawCanvas, this.points);
+			this.drawForHighlightPoint(this.drawCtx, this.points);
 		},
 		drawEnd: function(e){
 			console.log(this.getType() + ' drawEnd');
 			
-			this.drawForHighlightPoint(this.drawTempCtx, this.drawTempCanvas, this.pointsRate);
+			this.drawForHighlightPoint(this.drawTempCtx, this.pointsRate);
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.drawTemp,
@@ -1911,7 +1993,7 @@
 		drawOut: function(e){
 			console.log(this.getType() + ' drawOut');
 
-			this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+			this.drawCtx.clearCanvas();
 		},
 		
 		defaultStyle: {
@@ -1922,8 +2004,8 @@
 			gradient0: 'rgba(250,120,120, 0.9)',
 			gradient1: '#FF0000'
 		},
-		drawForHighlightPoint: function(ctx, canvas, drawPoints){
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		drawForHighlightPoint: function(ctx, drawPoints){
+			ctx.clearCanvas();
 			
 			var p = this.getPointSplit(drawPoints[0]);
 			ctx.beginPath();
@@ -1952,7 +2034,7 @@
 			console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
-			this.drawForHighlightPoint(this.recvDrawCtx, this.recvDrawCanvas, this.getPointSplitList(toolkitData.points));
+			this.drawForHighlightPoint(this.recvDrawCtx, this.getPointSplitList(toolkitData.points));
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.recvDraw,
@@ -1994,64 +2076,55 @@
 			console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
-			this.pointerMap.me = {style: this.toolkit.style, points: e.point.org}
-			
-			this.drawForMousePointer(this.canvasInfo.pointer.context, this.canvasInfo.pointer.canvas);
-			
-			if(this.setting.pointerDownSend && this.isDrawing){
-				this.sendEvent([e.point.rate]);
-			}
+			this.drawing(e);
 		},
 		drawing: function(e){
 			console.log(this.getType() + ' drawing');
 			
 			this.pointerMap.me = {style: this.toolkit.style, points: e.point.org}
+			this.drawForMousePointer();
 			
-			this.drawForMousePointer(this.canvasInfo.pointer.context, this.canvasInfo.pointer.canvas);
-			
-			if((!this.setting.pointerDownSend)|| (this.setting.pointerDownSend && this.isDrawing)){
+			// over시 전송일 경우, 클릭시 전송일 경우 이벤트 호출
+			if((!this.setting.pointerDownSend) || (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent([e.point.rate]);
 			}
 		},
 		drawEnd: function(e){
 			console.log(this.getType() + ' drawEnd');
 			
-			this.isDrawing = false;
-			
 			if(e.isTouch) this.pointerMap.me = null;
-			
-			this.drawForMousePointer(this.canvasInfo.pointer.context, this.canvasInfo.pointer.canvas);
+			this.drawForMousePointer();
 			
 			if(this.setting.pointerDownSend){
 				this.sendEvent(null);
 			}
+			this.isDrawing = false;
 		},
 		drawOut: function(e){
 			console.log(this.getType() + ' drawOut');
 			
 			this.pointerMap.me = null;				
-			
-			this.drawForMousePointer(this.canvasInfo.pointer.context, this.canvasInfo.pointer.canvas);
+			this.drawForMousePointer();
 			
 			if((!this.setting.pointerDownSend)|| (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent(null);
 			}
-			
 			this.isDrawing = false;
 		},
 		
 		sendEvent: function(points){
 			var THIS = this;
 			
+			// 지연 설정 이후에 이벤트를 발생한다. 과도한 이벤트 발생 방지
 			clearTimeout(this.eventCaller);
-			this.eventCaller = setTimeout(function(){
-				THIS.sendDrawData(points);
-			}, 5);
+			this.eventCaller = setTimeout(function(){THIS.sendDrawData(points);}, this.setting.delayMousePoint);
 		},
 		
-		drawForMousePointer: function(ctx, canvas){
+		drawForMousePointer: function(ctx){
+			if(!ctx) ctx = this.canvasInfo.pointer.context;
+				
 			var THIS = this;
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			ctx.clearCanvas();
 			
 			$.each(this.pointerMap, function(key, data){
 				if(!data){return;}
@@ -2067,7 +2140,7 @@
 				
 				// pointer의 위치가 canvas를 떠났을 경우 points가 null로 전송된다.
 				if(!points){
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.clearCanvas();
 					return;
 				}
 				var drawPoints = THIS.getPointSplitList(points);
@@ -2104,18 +2177,28 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
-			
 			var toolkitData = e.toolkitData;
-			console.log(toolkitData);
 			
+			// 좌표정보가 있는 경우 마우스포인트 정보를 설정한다.
 			if(toolkitData.points){
 				this.pointerMap[toolkitData.id] = {style: toolkitData.style, points: toolkitData.points, timeStamp: e.timeStamp};
-			}else{
+			}
+			// 좌표정보가 없는 경우 마우스포인트 정보를 삭제한다.
+			else{
 				delete this.pointerMap[toolkitData.id];
 			}
-			this.drawForMousePointer(this.canvasInfo.pointer.context, this.canvasInfo.pointer.canvas);
+			this.drawForMousePointer();
 		},	
 	}
 	$.pureCanvas.toolkit.addToolkit(MousePointer);
+	
+	/************************************************************************************/
+	/** add native function **/
+	
+	// Canvas Context - Clear Canvas
+	CanvasRenderingContext2D.prototype.clearCanvas = function(){
+		this.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	};
+	/************************************************************************************/
+	
 }(jQuery);

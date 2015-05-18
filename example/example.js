@@ -1,4 +1,6 @@
 $(document).ready(function(){
+	PureWebSocket.connect();
+	
 	$("#pureCanvas").pureCanvas({
 		setting: {
 			resizeType: 'page'
@@ -10,7 +12,7 @@ $(document).ready(function(){
 		}
 	});
 	
-	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', 'http://thimg.todayhumor.co.kr/upfile/201505/14319062302vK8aFBWBHTP.jpg');
+	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', 'http://spnimage.edaily.co.kr/images/photo/files/NP/S/2015/05/PS15051800042.jpg');
 	
 	var total = 0;
 	var index = 0;
@@ -42,7 +44,7 @@ $(document).ready(function(){
 		
 		data.eventType = 'draw';
 		
-		send(data);
+		PureWebSocket.send(data);
 	});
 	
 	$("#pureCanvas").on('show.bg.pureCanvas', function(e){
@@ -51,7 +53,7 @@ $(document).ready(function(){
 		var data = e.imageData;
 		data.eventType = 'bg';
 		
-		send(data);
+		PureWebSocket.send(data);
 	});
 	
 	$("#pureCanvas").on('canvas-resize.pureCanvas', function(e){
@@ -64,7 +66,7 @@ $(document).ready(function(){
 		var data = e.scrollData;
 		data.eventType = 'scroll';
 		
-		send(data);
+		PureWebSocket.send(data);
 	});
 	
 	$("#pureCanvas").on('history.pureCanvas', function(e){
@@ -73,10 +75,23 @@ $(document).ready(function(){
 		var data = e.historyData;
 		data.eventType = 'history';
 		
-		send(data);
+		PureWebSocket.send(data);
 	});
 	
 	
+	
+	
+	////////////////////////////////////////////////////////////////////////
+	
+	
+	$("#purePallete > ul > li").on('click', function(){
+		var $this = $(this);
+		
+		$("#purePallete > ul > li").removeClass('press');
+		$(this).addClass('press');
+	});
+	
+	/////////////////////////////////////////////////////////////////////////
 	
 	$("#rate").on("input", function(){
 		var $this = $(this);
@@ -87,7 +102,7 @@ $(document).ready(function(){
 			rateVal: $this.val()
 		}
 		
-		send(data);
+		PureWebSocket.send(data);
 	});
 	
 	$("#page").on("click", function(){
@@ -98,7 +113,7 @@ $(document).ready(function(){
 			type: 'page',
 		}
 		
-		send(data);
+		PureWebSocket.send(data);
 	});
 	
 	
@@ -143,44 +158,39 @@ $(document).ready(function(){
 		$("#pureCanvas").css({width: $(window).width() - 250, height: $(window).height() - 50});
 	});
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	var ws = null;
+});
 
-	connect = function(){
-		if(ws == null){
-			ws = new WebSocket('ws://172.16.34.77:9090/testerweb/ws/default');
+
+
+
+
+
+
+
+
+
+
+
+var PureWebSocket = {
+	url: 'ws://172.16.34.77:9090/testerweb/ws/default',
+	ws: null,
+
+	connect: function(callback){
+		if(this.ws == null){
+			this.ws = new WebSocket(this.url);
 			
-			
-			ws.onopen = function(){
+			this.ws.onopen = function(){
 				console.log('Opened!');
+				
+				if(callback && typeof callback == 'function'){
+					callback();
+				}
 			}
 			
-			ws.onmessage = function(messageEvent){
-				//var view = document.getElementById('view')
-				//view.value += '\n' + messageEvent.data;
+			this.ws.onmessage = function(messageEvent){
 				var msg = JSON.parse(messageEvent.data);
 				console.log(msg);
-				var canvasId = $("#pureCanvas").data('pure.pureCanvas').options.setting.id;
+				var canvasId = $("#pureCanvas").pureCanvas('setting', 'id');
 				
 				if(canvasId == msg.id){
 					console.log('is Me', canvasId, msg.id);
@@ -207,35 +217,52 @@ $(document).ready(function(){
 				}
 			}
 			
-			ws.onclose = function(){
+			this.ws.onclose = function(){
 				console.log('Closed!');
+				
+				PureWebSocket.ws = null;
+				PureWebSocket.connect(function(){
+					console.log('re connect.');
+				});
 			}
-			console.log(ws);
+			console.log(this.ws);
 		}else{
 			console.log('이미 연결되어 있음.');
 		}
-	}
+	},
 
-	send = function(msg){
-		if(ws != null){
-			/* var msg = document.getElementById('msg').value;
-			if(msg.length > 0){
-				ws.send(msg);
-			} */
-			ws.send(JSON.stringify(msg));
+	send: function(msg){
+		if(this.ws != null){
+			try{
+				this.ws.send(JSON.stringify(msg));
+			}catch(ex){
+				this.ws = null;
+				PureWebSocket.connect(function(){
+					this.send(msg);
+				});
+			}
+		}else{
+			console.log('연결되어 있지 않음.');
+			this.ws = null;
+			PureWebSocket.connect(function(){
+				this.send(msg);
+			});
+		}
+	},
+
+	closeEvent: function(){
+		if(this.ws != null){
+			this.ws.close();
+			this.ws = null;
+			
+			PureWebSocket.connect(function(){
+				this.send(msg);
+			});
 		}else{
 			console.log('연결되어 있지 않음.');
 		}
-	}
+	},
+}
 
-	closeEvent = function(){
-		if(ws != null){
-			ws.close();
-			ws = null;
-		}else{
-			console.log('연결되어 있지 않음.');
-		}
-	}
-	connect();	
-	
-});
+
+
