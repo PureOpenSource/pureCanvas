@@ -1476,7 +1476,7 @@
 	$.pureCanvas.toolkit.addToolkit(BallPen);
 	
 	/*******************************************************************************
-	 * highlighter
+	 * Highlighter
 	 *******************************************************************************/
 	var Highlighter = function(){
 		this.isDrawing = false;

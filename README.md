@@ -19,6 +19,23 @@ js 파일을 추가합니다.
 $("#pureCanvas").pureCanvas(options);
 ```
 
+## Kind of Toolkit Type
+Type|설명
+----|----
+Cursor|일반 커서
+HandCursor|스크롤을 움직일 수 있는 커서
+Eraser|지우개
+ClearAll|모두 지우기
+BallPen|볼펜
+Highlighter|형광펜(50% 투명도)
+StraightLine|직선
+Rectangle|사각형
+Circle|원
+Triangle|삼각형
+CheckPoint|체크포인트
+HighlightPoint|중요 포인트 (하나만 Draw 가능)
+MousePointer|마우스포인터
+
 ## Options
 PureCanvas를 생성 시 전달할 수 있다.
 
