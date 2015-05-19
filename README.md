@@ -14,7 +14,7 @@ js 파일을 추가합니다.
 	...
 </html>
 ```
-`div` tag에 `.pureCanavs()` 
+`.pureCanavs()`로 Canvas를 생성합니다. 
 ```javascript
 $("#pureCanvas").pureCanvas(options);
 ```
@@ -63,6 +63,63 @@ $("#pureCanvas").pureCanvas({
 
 ## Method
 
+#### setting
+Method Name|설명
+----|----|
+authForDraw|그리기 권한 설정
+pointerForDraw|마우스포인터 사용 권한 설정
+pointerDownSend|마우스포인터 클릭 시 전송 여부 설정
+backgroundImage|배경 이미지 설정
+resizeType|확대/축소 타입 설정
+scroll|스크롤 위치 변경
+
+```javascript
+// getter
+$("#pureCanvas").pureCanvas('setting');
+$("#pureCanvas").pureCanvas('setting', MethodName);
+
+// setter
+$("#pureCanvas").pureCanvas('setting', MethodName, value);
+```
+
+#### toolkit
+Method Name|설명
+----|----|
+type|Toolkit Type 설정
+lineWidth|선 굵기 설정
+strokeStyle|선색 설정
+fillStyle|채움 색 설정
+draw|Draw Object 정보로 그리기
+
+```javascript
+// getter
+$("#pureCanvas").pureCanvas('toolkit');
+$("#pureCanvas").pureCanvas('toolkit', MethodName);
+
+// setter
+$("#pureCanvas").pureCanvas('toolkit', MethodName, value);
+```
+
+#### resize
+Method Name|설명
+----|----|
+resize|Canvas 크기 조정
+
+```javascript
+$("#pureCanvas").pureCanvas('resize');
+```
+
+#### history
+Method Name|return type|설명
+----|----|----|
+prev||Draw 취소(undo)
+next||Draw 다시 실행(redo)
+hasPrev|boolean|Draw 취소(undo) 가능 여부
+hasNext|boolean|Draw 다시 실행(redo) 가능 여부
+
+```javascript
+$("#pureCanvas").pureCanvas('history', methodName);
+```
 
 ## Event
 PureCanvas는 아래와 같은 이벤트를 제공합니다.

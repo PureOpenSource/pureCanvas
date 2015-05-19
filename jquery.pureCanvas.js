@@ -284,12 +284,8 @@
 	 */
 	PureCanvas.prototype.toolkit = function(targetName, value){
 		// getter
-		if(!targetName && !value){
-			return this.options.toolkit;
-		}
-		if(targetName && !value){
-			return this.options.toolkit[targetName] ? this.options.toolkit[targetName] : undefined;
-		}
+		if(!targetName && !value) return this.options.toolkit;
+		if(targetName && !value) return this.options.toolkit[targetName] ? this.options.toolkit[targetName] : undefined;
 		
 		// setter
 		return this.toolkit[targetName] ? this.toolkit[targetName].call(this, value) : undefined;
@@ -368,12 +364,8 @@
 	 */	
 	PureCanvas.prototype.setting = function(targetName, value){
 		// getter
-		if(!targetName && !value){
-			return this.options.toolkit;
-		}
-		if(targetName && !value){
-			return this.options.setting[targetName] ? this.options.setting[targetName] : undefined;
-		}
+		if(!targetName && !value) return this.options.toolkit;
+		if(targetName && !value) return this.options.setting[targetName] ? this.options.setting[targetName] : undefined;
 		
 		// setter
 		return this.setting[targetName] ? this.setting[targetName].call(this, value) : undefined;
@@ -497,7 +489,7 @@
 	});
 	
 	/**
-	 * Canvas 확대/축소 처리
+	 * Canvas 크기 변경
 	 */
 	PureCanvas.prototype.resize = function(){
 		if(this.resize[this.options.setting.resizeType]){
@@ -553,8 +545,13 @@
 			var imageInfo = this.imageInfo;
 			var rateVal = this.options.setting.rateVal;
 			
+			// 왼쪽, 위 마진 정보 계산,
 			var marginLeft = this.$main.width() / 2 - (width / 2);
 			var marginTop = this.$main.height() / 2 - (height / 2)
+			
+			// border, padding size를 고려하여 가로, 세로 크기를 변경한다.
+			width -= (this.$container.outerWidth() - this.$container.width());
+			height -= (this.$container.outerHeight() - this.$container.height());
 			
 			this.$container.css({width: width, height: height, 'margin-left': marginLeft < 0 ? 0 : marginLeft, 'margin-top': marginTop < 0 ? 0 : marginTop});
 			
@@ -707,13 +704,17 @@
 	
 	$.pureCanvas = {};
 	$.pureCanvas.toolkit = function(element){
+		// Element 정보
 		this.$element = element;
 		this.$main = this.$element.find('[data-pure-canvas="main"]');
-		this.canvasInfo = this.$element.data('pure.pureCanvas').canvasInfo;
+		
+		// 설정 정보
 		this.options = this.$element.data('pure.pureCanvas').options;
 		this.setting = this.options.setting;
 		this.toolkit = this.options.toolkit;
 		
+		// canvas 정보
+		this.canvasInfo = this.$element.data('pure.pureCanvas').canvasInfo;
 		this.drawCanvas = this.canvasInfo.draw.canvas;
 		this.$drawCanvas = this.canvasInfo.draw.$canvas;
 		this.drawCtx = this.canvasInfo.draw.context;
@@ -722,6 +723,7 @@
 		this.viewCtx = this.canvasInfo.view.context;
 		this.mainCtx = this.canvasInfo.main.context;
 		
+		// Toolit Event 생성
 		this.makeEvent();
 	}
 
@@ -734,13 +736,14 @@
 				$.each($.pureCanvas.toolkit.type, function(toolkitType, toolkit){
 					// $.pureCanvas.toolkit의 공통 function을 사용하기 위해 $.extend 함.
 					$.extend(toolkit, THIS);
+					// 초기 설정이 있는 경우
 					if(toolkit.init) toolkit.init();
 					
 					THIS.$drawCanvas.on('drawEvent-' + toolkitType, function(e){
+						// Canvas에 직접 Draw 하는 것만 좌표를 계산한다.
 						if(e.eventType != 'draw.pureCanvas'){
 							// 좌표 계산, touchend event는 값 없음.
-							var point = THIS.getPoint(e);
-							e.point = point;
+							e.point = THIS.getPoint(e);
 						}
 						
 						// Toolkit Type의 callMethod가 있는 경우 수행한다.
@@ -752,9 +755,9 @@
 			
 			sendDrawData: function(points){
 				var data = {
+					id: this.setting.id,
 					type: this.getType(),
 					style: this.toolkit.style,
-					id: this.setting.id,
 					points: points ? (Object.prototype.toString.call(points) === "[object Array]") ? points.join(',') : points : null
 				}
 				
@@ -767,7 +770,7 @@
 					console.warn('complate.draw.pureCanvas event error. [%s]', ex);
 				}
 			},
-			sendScrollData: function(e){
+			sendScrollData: function(){
 				// Scroll bar의 크기를 구한다.
 				var scrollBarWidth = this.$main.prop("scrollWidth") - this.$main.prop("clientWidth");
 				var scrollBarHeight = this.$main.prop("scrollHeight") - this.$main.prop("clientHeight");
@@ -999,7 +1002,7 @@
 			return points && points.length > 0 ? points[points.lenght-1] == currentPoint : false; 
 		},
 		
-		// 굵기, 색에 따라그려질 정보를 출력한다.
+		// 굵기, 색에 따라 그려질 정보를 출력한다.
 		drawForPrePoint: function(ctx, drawStyle, drawPoint){
 			var style = $.extend({}, drawStyle);
 			if(!drawStyle.isNotChange){

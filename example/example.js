@@ -155,7 +155,7 @@ $(document).ready(function(){
 		
 		console.log(body.width(), body.height(),$(window).width(), $(window).height());
 		
-		$("#pureCanvas").css({width: $(window).width() - 250, height: $(window).height() - 50});
+		$("#pureCanvas").css({width: $(window).width() - 350, height: $(window).height() - 50});
 	});
 	
 });
