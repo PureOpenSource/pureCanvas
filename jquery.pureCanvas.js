@@ -76,7 +76,9 @@
 			rateVal: 1,
 			
 			// 마우스포인터 전송 지연 시간(ms)
-			delayMousePoint: 5,
+			delayMousePoint: 3,
+			
+			containerStyle: {}
 		},
 		// Toolkit 정보
 		toolkit: {
@@ -137,7 +139,8 @@
 				.css({'display': 'block', 'position': 'absolute', 'overflow': 'auto', 'width': 'inherit', 'height': 'inherit'})
 				.appendTo(this.$element); 
 			var $container = $('<div></div>').attr('data-pure-canvas', 'container')
-				.css({'border': '1px solid'})
+				//.css({'border': '1px solid'})
+				.css(this.options.setting.containerStyle)
 				.appendTo($main);
 			
 			this.$main = $main;
@@ -284,8 +287,8 @@
 	 */
 	PureCanvas.prototype.toolkit = function(targetName, value){
 		// getter
-		if(!targetName && !value) return this.options.toolkit;
-		if(targetName && !value) return this.options.toolkit[targetName] ? this.options.toolkit[targetName] : undefined;
+		if(!targetName && value == undefined) return this.options.toolkit;
+		if(targetName && value == undefined) return this.options.toolkit[targetName];
 		
 		// setter
 		return this.toolkit[targetName] ? this.toolkit[targetName].call(this, value) : undefined;
@@ -294,6 +297,11 @@
 		type: function(value){
 			var toolkit = this.options.toolkit;
 			var toolkitType = $.pureCanvas.toolkit.type[value];
+			
+			if(toolkitType == undefined){
+				console.warn('not match toolkit type. ', value);
+				return;
+			}
 			
 			// 즉시 처리 로직 수행
 			if(toolkitType.instantProcess){
@@ -364,8 +372,8 @@
 	 */	
 	PureCanvas.prototype.setting = function(targetName, value){
 		// getter
-		if(!targetName && !value) return this.options.toolkit;
-		if(targetName && !value) return this.options.setting[targetName] ? this.options.setting[targetName] : undefined;
+		if(!targetName && value == undefined) return this.options.toolkit;
+		if(targetName && value == undefined) return this.options.setting[targetName];
 		
 		// setter
 		return this.setting[targetName] ? this.setting[targetName].call(this, value) : undefined;
@@ -375,7 +383,7 @@
 			this.options.setting.authForDraw = value;
 			
 			if(value){
-				var cursor = $.pureCanvas.toolkit.type[toolkit.type].getCursor();
+				var cursor = $.pureCanvas.toolkit.type[this.options.toolkit.type].getCursor();
 				this.canvasInfo.draw.canvas.style.cursor = cursor;
 			}else{
 				this.canvasInfo.draw.canvas.style.cursor = this.options.setting.notAuthForDrawCursor;
@@ -395,6 +403,12 @@
 		},
 		backgroundImage: function(value){
 			var THIS = this;
+			var callbackFunction;
+			
+			if(typeof value == 'object'){
+				callbackFunction = value.callback;
+				value = value.imageSrc;
+			}
 			
 			if(THIS.imageInfo && THIS.imageInfo.imgSrc === value){
 				console.debug('duplication. image. ' + value);
@@ -443,6 +457,9 @@
 				console.debug("image loading time: %dms", eDate - sDate);
 
 				// 백그라운드 이미지 출력 완료 이벤트 발생
+				if(callbackFunction && typeof callbackFunction == 'function'){
+					callbackFunction.call();
+				}
 				try{
 					THIS.$element.trigger({
 						type: 'show.bg.pureCanvas',
@@ -788,8 +805,8 @@
 					scrollBarHeight: scrollBarHeight,
 					scrollLeft: scrollLeft,
 					scrollTop: scrollTop,
-					leftRate: leftRate,
-					topRate: topRate
+					left: leftRate,
+					top: topRate
 				}
 				
 				try{
@@ -808,8 +825,8 @@
 				var scrollBarHeight = this.$main.prop("scrollHeight") - this.$main.prop("clientHeight");
 				
 				// 이동한 위치의 비율을 계산한다.
-				var scrollLeft = scrollBarWidth * data.leftRate;
-				var scrollTop = scrollBarHeight * data.topRate;
+				var scrollLeft = scrollBarWidth * data.left;
+				var scrollTop = scrollBarHeight * data.top;
 				
 				// event 중복 호출 방지, 수신으로 변경된 정보가 event를 타고 나가는것 방지
 				this.$main.data('pureCanvas-scroll', {type: 'recv', isTrigger: false});
@@ -1220,13 +1237,13 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			this.downPoint = this.getPointSplit(e.point.org);
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			if(this.isDrawing){
 				var movePoint = this.getPointSplit(e.point.org); 
@@ -1240,14 +1257,14 @@
 			}
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.isDrawing = false;
 			
 			this.sendScrollData();
 		},
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.$main.scrollLeft(toolkitData.left);
@@ -1273,7 +1290,7 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isEraser = true;
 			
@@ -1283,7 +1300,7 @@
 			this.drawing(e);			
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 
 			var drawStyle = this.getCustomStyleLine(this.getDrawStyle());
 			var drawTempStyle = this.getCustomStyleLine(this.toolkit.style);
@@ -1298,7 +1315,7 @@
 			this.drawForPrePoint(this.drawCtx, this.getCustomStyle(drawStyle), e.point.org);
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.sendDrawData(this.pointsRate);
 			
@@ -1313,7 +1330,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 			
 			this.drawCtx.clearCanvas();
 		},
@@ -1336,7 +1353,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			
@@ -1378,7 +1395,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			this.clearCanvas();
 		},
@@ -1394,13 +1411,13 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			this.drawing(e);
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var drawStyle = this.getCustomStyle(this.getDrawStyle());
 			var drawTempStyle = this.getCustomStyle(this.toolkit.style);
@@ -1417,7 +1434,7 @@
 			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.complateDraw({
 				copyFrom: this.canvasInfo.drawTemp,
@@ -1432,14 +1449,14 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 			
 			if(!this.isDrawing){
 				this.drawCtx.clearCanvas();
 			}
 		},
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForLine(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
@@ -1518,7 +1535,7 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			
@@ -1527,7 +1544,7 @@
 			this.pointsRate[0] = point.rate;
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var drawStyle = this.getCustomStyle(this.getDrawStyle());
 			var drawTempStyle = this.toolkit.style;
@@ -1544,7 +1561,7 @@
 			
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.isDrawing = false;
 
@@ -1560,7 +1577,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
 				this.drawCtx.clearCanvas();
@@ -1573,7 +1590,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForLine(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
@@ -1605,7 +1622,7 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			
@@ -1614,7 +1631,7 @@
 			this.pointsRate[0] = point.rate;
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var drawStyle = this.getCustomStyle(this.getDrawStyle());
 			var drawTempStyle = this.getCustomStyle(this.toolkit.style);
@@ -1631,7 +1648,7 @@
 			
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.isDrawing = false;
 
@@ -1647,7 +1664,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
 				this.drawCtx.clearCanvas();
@@ -1661,7 +1678,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForRect(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
@@ -1693,7 +1710,7 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			
@@ -1702,7 +1719,7 @@
 			this.pointsRate[0] = point.rate;
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var drawStyle = this.getCustomStyle(this.getDrawStyle());
 			var drawTempStyle = this.getCustomStyle(this.toolkit.style);
@@ -1719,7 +1736,7 @@
 			
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.isDrawing = false;
 
@@ -1735,7 +1752,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
 				this.drawCtx.clearCanvas();
@@ -1749,7 +1766,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForArc(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
@@ -1781,7 +1798,7 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			
@@ -1790,7 +1807,7 @@
 			this.pointsRate[0] = point.rate;
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var drawStyle = this.getCustomStyle(this.getDrawStyle());
 			var drawTempStyle = this.getCustomStyle(this.toolkit.style);
@@ -1807,7 +1824,7 @@
 			
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.isDrawing = false;
 
@@ -1823,7 +1840,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 
 			if(!this.isDrawing){
 				this.drawCtx.clearCanvas();
@@ -1837,7 +1854,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForTriangle(this.recvDrawCtx, this.getCustomStyle(toolkitData.style), this.getPointSplitList(toolkitData.points));
@@ -1867,12 +1884,12 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.drawing(e);
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var point = e.point;
 			this.points[0] = point.org;
@@ -1881,7 +1898,7 @@
 			this.drawForCheckPoint(this.drawCtx, this.points);
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.drawForCheckPoint(this.drawTempCtx, this.pointsRate);
 			
@@ -1897,7 +1914,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 
 			this.drawCtx.clearCanvas();
 		},
@@ -1933,7 +1950,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForCheckPoint(this.recvDrawCtx, this.getPointSplitList(toolkitData.points));
@@ -1963,12 +1980,12 @@
 		},
 		
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.drawing(e);
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
 			
 			var point = e.point;
 			this.points[0] = point.org;
@@ -1977,7 +1994,7 @@
 			this.drawForHighlightPoint(this.drawCtx, this.points);
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			this.drawForHighlightPoint(this.drawTempCtx, this.pointsRate);
 			
@@ -1994,7 +2011,7 @@
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 
 			this.drawCtx.clearCanvas();
 		},
@@ -2034,7 +2051,7 @@
 		},
 		
 		draw: function(e){
-			console.log(this.getType() + ' draw');
+			//console.log(this.getType() + ' draw');
 			
 			var toolkitData = e.toolkitData;
 			this.drawForHighlightPoint(this.recvDrawCtx, this.getPointSplitList(toolkitData.points));
@@ -2069,23 +2086,27 @@
 			var THIS = this;
 			// Event 추가
 			
-//			this.drawEvent = setInterval(function(){
-//				THIS.drawForMousePointer(THIS.canvasInfo.pointer.context, THIS.canvasInfo.pointer.canvas);
-//			}, 10);
+			this.drawEvent = setInterval(function(){
+				THIS.drawForMousePointer();
+			}, 1);
 			
 		},
 	
 		drawStart: function(e){
-			console.log(this.getType() + ' drawStart');
+			//console.log(this.getType() + ' drawStart');
 			
 			this.isDrawing = true;
 			this.drawing(e);
 		},
 		drawing: function(e){
-			console.log(this.getType() + ' drawing');
+			//console.log(this.getType() + ' drawing');
+			
+			if(e.callMethod != 'drawStart' && this.pointerMap.me && this.pointerMap.me.points == e.point.org){
+				return;
+			}
 			
 			this.pointerMap.me = {style: this.toolkit.style, points: e.point.org}
-			this.drawForMousePointer();
+			//this.drawForMousePointer();
 			
 			// over시 전송일 경우, 클릭시 전송일 경우 이벤트 호출
 			if((!this.setting.pointerDownSend) || (this.setting.pointerDownSend && this.isDrawing)){
@@ -2093,10 +2114,10 @@
 			}
 		},
 		drawEnd: function(e){
-			console.log(this.getType() + ' drawEnd');
+			//console.log(this.getType() + ' drawEnd');
 			
 			if(e.isTouch) this.pointerMap.me = null;
-			this.drawForMousePointer();
+			//this.drawForMousePointer();
 			
 			if(this.setting.pointerDownSend){
 				this.sendEvent(null);
@@ -2104,10 +2125,10 @@
 			this.isDrawing = false;
 		},
 		drawOut: function(e){
-			console.log(this.getType() + ' drawOut');
+			//console.log(this.getType() + ' drawOut');
 			
 			this.pointerMap.me = null;				
-			this.drawForMousePointer();
+			//this.drawForMousePointer();
 			
 			if((!this.setting.pointerDownSend)|| (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent(null);
@@ -2190,7 +2211,7 @@
 			else{
 				delete this.pointerMap[toolkitData.id];
 			}
-			this.drawForMousePointer();
+			//this.drawForMousePointer();
 		},	
 	}
 	$.pureCanvas.toolkit.addToolkit(MousePointer);

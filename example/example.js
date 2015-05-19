@@ -3,7 +3,11 @@ $(document).ready(function(){
 	
 	$("#pureCanvas").pureCanvas({
 		setting: {
-			resizeType: 'page'
+			resizeType: 'page',
+			
+			containterStyle: {
+				'border': '1px soild'
+			}
 		},
 		toolkit: {
 			style: {
