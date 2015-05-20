@@ -78,7 +78,9 @@
 			// 마우스포인터 전송 지연 시간(ms)
 			delayMousePoint: 3,
 			
-			containerStyle: {}
+			containerStyle: {},
+			// point 비율 계산에 따른 소수점 자리수
+			pointFixed: 1,
 		},
 		// Toolkit 정보
 		toolkit: {
@@ -861,8 +863,10 @@
 
 				// 비율에 따른 좌표 계산
 				var rateVal = this.setting.rateVal;
-				var rx = Math.ceil(x / rateVal);
-				var ry = Math.ceil(y / rateVal);
+				var rx = Math.round(x / rateVal, this.setting.pointFixed);
+				var ry = Math.round(y / rateVal, this.setting.pointFixed);
+				//var rx = (x / rateVal).toFixed(this.setting.pointFixed);
+				//var ry = (y / rateVal).toFixed(this.setting.pointFixed);
 				
 				return {org: x+" "+y, rate: rx+" "+ry}
 			},
