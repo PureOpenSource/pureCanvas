@@ -49,6 +49,7 @@ pointerDownSend|boolean|true|마우스 포인트, 마우스 클릭 시 전송 �
 delayMousePoint|integer|5|마우스 포인트 전송 지연 시간(ms)
 resizeType|string|page|Canvavs 크기 설정, page: 쪽맞춤, rate: 비율
 rateVal|integer|1|화면 비율, 1 = 100%
+containerStyle|object||Container Element의 CSS
 
 ```javascript
 $("#pureCanvas").pureCanvas({
@@ -80,7 +81,9 @@ $("#pureCanvas").pureCanvas({
 
 ## Method
 
-#### setting
+#### 1) setting
+
+
 Method Name|설명
 ----|----|
 authForDraw|그리기 권한 설정
@@ -99,7 +102,7 @@ $("#pureCanvas").pureCanvas('setting', MethodName);
 $("#pureCanvas").pureCanvas('setting', MethodName, value);
 ```
 
-#### toolkit
+#### 2) toolkit
 Method Name|설명
 ----|----|
 type|Toolkit Type 설정
@@ -117,7 +120,7 @@ $("#pureCanvas").pureCanvas('toolkit', MethodName);
 $("#pureCanvas").pureCanvas('toolkit', MethodName, value);
 ```
 
-#### resize
+#### 3) resize
 Method Name|설명
 ----|----|
 resize|Canvas 크기 조정
@@ -126,7 +129,7 @@ resize|Canvas 크기 조정
 $("#pureCanvas").pureCanvas('resize');
 ```
 
-#### history
+#### 4) history
 Method Name|return type|설명
 ----|----|----|
 prev||Draw 취소(undo)

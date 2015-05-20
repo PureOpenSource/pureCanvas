@@ -5,8 +5,8 @@ $(document).ready(function(){
 		setting: {
 			resizeType: 'page',
 			
-			containterStyle: {
-				'border': '1px soild'
+			containerStyle: {
+				//'border': '1px solid'
 			}
 		},
 		toolkit: {
