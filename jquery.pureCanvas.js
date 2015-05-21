@@ -81,6 +81,8 @@
 			containerStyle: {},
 			// point 비율 계산에 따른 소수점 자리수
 			pointFixed: 1,
+			//autoWindowResize
+			windowResizeEvent: true,
 		},
 		// Toolkit 정보
 		toolkit: {
@@ -165,7 +167,7 @@
 				data.canvas = $canvas.get(0);
 				data.context = $canvas.get(0).getContext('2d');
 			}
-			
+
 			console.debug(this.canvasInfo);
 		},
 		
@@ -187,6 +189,7 @@
 		 * Mouse, Touch Event 생성
 		 */
 		makeCanvasEvent: function(){
+			var THIS = this;
 			var setting = this.options.setting;
 			var toolkit = this.options.toolkit;
 			var $drawCanvas = this.canvasInfo.draw.$canvas;
@@ -420,7 +423,7 @@
 			var image = new Image();
 			
 			var sDate = new Date();
-			this.loadingBar.call(this, 'show', 'Image Loading...');
+			this.loadingBar.call(this, 'show', 'Loading...');
 			image.onload = function(){
 				var imageWidth = image.width;
 				var imageHeight = image.height;
@@ -714,7 +717,9 @@
 	$(window).on('load', function(){
 		$(window).on('resize', function(){
 			$('[data-pure-canvas="element"]').each(function(index, element){
-				$(element).pureCanvas('resize');
+				if($(element).pureCanvas('setting', 'windowResizeEvent')){
+					$(element).pureCanvas('resize');
+				}
 			});
 		});
 	});
@@ -740,6 +745,7 @@
 		this.drawTempCtx = this.canvasInfo.drawTemp.context;
 		this.recvDrawCtx = this.canvasInfo.recvDraw.context;
 		this.viewCtx = this.canvasInfo.view.context;
+		this.mViewCtx = this.canvasInfo.mView.context;
 		this.mainCtx = this.canvasInfo.main.context;
 		
 		// Toolit Event 생성
@@ -1262,10 +1268,12 @@
 		},
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
+
+			if(this.isDrawing){
+				this.sendScrollData();
+			}
 			
 			this.isDrawing = false;
-			
-			this.sendScrollData();
 		},
 		draw: function(e){
 			//console.log(this.getType() + ' draw');
@@ -1321,13 +1329,14 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
-			this.sendDrawData(this.pointsRate);
-			
 			if(e.isTouch){
 				this.drawCtx.clearCanvas();
 			}
 			
-			this.$element.data('pure.pureCanvas').historyAdd();
+			if(this.isEraser){
+				this.sendDrawData(this.pointsRate);
+				this.$element.data('pure.pureCanvas').historyAdd();
+			}
 			
 			this.isEraser = false;
 			this.points = [];
@@ -1362,9 +1371,10 @@
 			var toolkitData = e.toolkitData;
 			
 			this.viewCtx.globalCompositeOperation = "destination-out";
-			this.mainCtx.globalCompositeOperation = "destination-out";
+			this.mViewCtx.globalCompositeOperation = "destination-out";
 			
 			this.drawForLine(this.viewCtx, this.getCustomStyleLine(toolkitData.style), this.getPointSplitList(toolkitData.points));
+			this.drawForLine(this.mViewCtx, this.getCustomStyleLine(toolkitData.style), this.getPointSplitList(toolkitData.points));
 			
 			this.mainCanvasChange();
 		},	
@@ -1440,13 +1450,15 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.view,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
+			if(this.isDrawing){
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.view,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
 			
 			this.isDrawing = false;
 			this.points = [];
@@ -1567,16 +1579,17 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
+			if(this.isDrawing){
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.view,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
+			
 			this.isDrawing = false;
-
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.view,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
-			
 			this.points = [];
 			this.pointsRate = [];
 		},
@@ -1654,16 +1667,17 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
+			if(this.isDrawing){
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.view,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
+			
 			this.isDrawing = false;
-
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.view,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
-			
 			this.points = [];
 			this.pointsRate = [];
 		},
@@ -1742,16 +1756,17 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
+			if(this.isDrawing){
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.view,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
+			
 			this.isDrawing = false;
-
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.view,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
-			
 			this.points = [];
 			this.pointsRate = [];
 		},
@@ -1830,16 +1845,17 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
+			if(this.isDrawing){
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.view,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
+			
 			this.isDrawing = false;
-
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.view,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
-			
 			this.points = [];
 			this.pointsRate = [];
 		},
@@ -1876,6 +1892,7 @@
 	 * CheckPoint
 	 *******************************************************************************/
 	var CheckPoint = function(){
+		this.isDrawing = false;
 		this.points = [];
 		this.pointsRate = [];
 	}
@@ -1889,7 +1906,7 @@
 		
 		drawStart: function(e){
 			//console.log(this.getType() + ' drawStart');
-			
+			this.isDrawing = true;
 			this.drawing(e);
 		},
 		drawing: function(e){
@@ -1904,22 +1921,23 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
-			this.drawForCheckPoint(this.drawTempCtx, this.pointsRate);
-			
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.view,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
-			
+			if(this.isDrawing){
+				this.drawForCheckPoint(this.drawTempCtx, this.pointsRate);
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.view,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
+			this.isDrawing = false;
 			this.points = [];
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
 			//console.log(this.getType() + ' drawOut');
-
+			this.isDrawing = false;
 			this.drawCtx.clearCanvas();
 		},
 		
@@ -1972,6 +1990,7 @@
 	 * HighlightPoint
 	 *******************************************************************************/
 	var HighlightPoint = function(){
+		this.isDrawing = false;
 		this.points = [];
 		this.pointsRate = [];
 	}
@@ -1985,7 +2004,7 @@
 		
 		drawStart: function(e){
 			//console.log(this.getType() + ' drawStart');
-			
+			this.isDrawing = true;
 			this.drawing(e);
 		},
 		drawing: function(e){
@@ -2000,23 +2019,25 @@
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
 			
-			this.drawForHighlightPoint(this.drawTempCtx, this.pointsRate);
-			
-			this.complateDraw({
-				copyFrom: this.canvasInfo.drawTemp,
-				copyTo: this.canvasInfo.mView,
-				copyToPreClear: true,
-				clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
-			});
-			
-			this.sendDrawData(this.pointsRate);
-			
+			if(this.isDrawing){
+				this.drawForHighlightPoint(this.drawTempCtx, this.pointsRate);
+				
+				this.complateDraw({
+					copyFrom: this.canvasInfo.drawTemp,
+					copyTo: this.canvasInfo.mView,
+					copyToPreClear: true,
+					clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+				});
+				
+				this.sendDrawData(this.pointsRate);
+			}
+			this.isDrawing = false;
 			this.points = [];
 			this.pointsRate = [];
 		},
 		drawOut: function(e){
 			//console.log(this.getType() + ' drawOut');
-
+			this.isDrawing = false;
 			this.drawCtx.clearCanvas();
 		},
 		
@@ -2086,14 +2107,16 @@
 		getCursor: function(){
 			return 'crosshair';
 		},
-		init: function(){
+		
+		startDraw: function(){
 			var THIS = this;
-			// Event 추가
 			
-			this.drawEvent = setInterval(function(){
+			clearTimeout(this.drawEvent);
+			this.drawEvent = setTimeout(function(){
 				THIS.drawForMousePointer();
-			}, 1);
-			
+				
+				clearTimeout(THIS.drawEvent);
+			});
 		},
 	
 		drawStart: function(e){
@@ -2111,6 +2134,7 @@
 			
 			this.pointerMap.me = {style: this.toolkit.style, points: e.point.org}
 			//this.drawForMousePointer();
+			this.startDraw();
 			
 			// over시 전송일 경우, 클릭시 전송일 경우 이벤트 호출
 			if((!this.setting.pointerDownSend) || (this.setting.pointerDownSend && this.isDrawing)){
@@ -2122,6 +2146,7 @@
 			
 			if(e.isTouch) this.pointerMap.me = null;
 			//this.drawForMousePointer();
+			this.startDraw();
 			
 			if(this.setting.pointerDownSend){
 				this.sendEvent(null);
@@ -2133,11 +2158,34 @@
 			
 			this.pointerMap.me = null;				
 			//this.drawForMousePointer();
+			this.startDraw();
 			
 			if((!this.setting.pointerDownSend)|| (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent(null);
 			}
 			this.isDrawing = false;
+		},
+		
+		sendTest: function(){
+			var points = ["667 533","667 533","665 533","660 533","653 534","644 536","631 541","618 543","603 548","589 552","575 555","559 560","542 563","520 569","498 572","464 576","431 582","396 584","360 584","336 584","309 584","286 584","258 583","237 575","212 569","198 561","184 553","173 548","164 540","161 534","156 526","155 518","151 507","150 498","150 488","148 477","145 464","145 452","145 438","145 425","145 414","145 405","145 396","145 387","145 378","149 368","154 355","159 340","165 326","166 316","169 303","171 292","171 286","173 277","174 272","175 267","176 256","178 249","180 243","180 237","181 229","181 224","181 217","183 210","186 201","187 194","192 186","195 178","202 166","210 157","221 144","221 144","233 133","246 126","258 119","269 116","285 112","296 111","306 111","315 111","321 111","332 115","341 119","347 122","357 127","363 132","370 138","378 144","384 152","392 163","398 172","407 186","414 198","421 210","422 218","422 227","422 232","422 235","421 239","421 239","421 241","421 242","421 241","425 233","433 224","440 215","446 204","452 194","460 184","467 174","476 162","481 153","484 143","486 132","486 126","482 118","476 112","465 107","457 106","448 103","439 102","431 102","423 102","413 102","403 102","393 102","379 105","365 109","349 114","332 119","317 126","305 134","299 139","296 143","296 147","296 151","296 156","298 161","307 169","318 176","335 184","353 192","374 198","386 200","401 205","411 206","423 207","433 208","438 208","440 210","443 210","445 211","449 212","452 213","456 216","458 217","461 221","464 224","465 226","469 233","470 240","470 249","470 258","470 268","470 280","470 290","475 300","475 310","475 317","475 329","475 336","468 347","461 358","456 368","451 378","447 384","446 391","445 396","443 403","440 408","437 415","432 421","426 427","419 433","408 440","397 446","390 449","379 454","372 455","364 459","352 462","339 464","321 464","303 464","303 464","280 464","261 464","243 464","228 464","216 464","206 462","200 458","199 458","199 456","199 453","199 449","200 443","210 436","224 431","244 427","280 424","320 424","354 425","371 427","384 430","396 432","408 433","415 434","421 438","427 438","428 438","429 438","430 438","435 438","441 435","449 424","458 412","468 394","475 379","480 362","485 342","488 327","490 309","490 294","490 280","490 267","490 258","486 248","480 238","472 231","459 221","449 214","440 209","431 203","425 197","417 192","413 187","408 184","400 179","390 174","379 171","369 166","361 163","354 158","345 154","336 149","330 145","325 142","319 137","308 132","298 129","283 124","271 121","259 117","250 114","240 111","231 108","223 106","218 105","209 102","200 102","189 102","177 102","164 102","155 102","146 102","143 102","136 104","135 105","135 106","135 108","132 110","132 114","132 120","132 130","132 137","132 147","130 157","126 169","126 181","126 188","126 201","126 215","135 229","151 246","165 257","181 266","204 280","217 287","232 296","248 304","263 311","279 320","296 330","304 337","316 345","324 352","329 357","331 365","334 373","335 380","335 387","335 396","335 408","335 418","335 431","335 441","334 450","329 458","322 469","322 469","316 475","307 482","299 487","291 490","285 494","280 495","273 496","266 499","255 499","250 499","242 499","237 499","225 494","218 489","208 483","201 476","199 473","198 469","198 462","198 455","198 446","198 433","199 422","204 409","208 396","215 383","222 371","231 359","237 347","247 337","256 326","263 318","269 308","277 298","282 290","291 280","295 272","298 267","303 257","306 250","310 246","313 240","319 234","325 226","331 220","336 213","340 207","343 203","344 198","346 196","350 193","353 192","362 189","368 187","375 187","384 186","390 186","400 186","411 186","421 186","433 186","446 186","459 186","472 186","482 186","494 185","504 181","513 178","515 177","520 174","521 174","524 171","526 169","527 165","530 160","531 154","533 147","533 140","533 134","533 129","531 125","529 119","526 114","520 108","516 102","514 100","511 97","507 93","502 90","500 89","495 87","486 83","479 82","472 81","464 77","455 76","446 72","436 71","427 70","417 68","406 68","393 68","378 68","361 68","347 68","335 68","323 69","312 69","307 71","300 72","293 73","283 73","278 74","270 78","263 79","256 83","252 85","248 88","246 89","243 93","243 96","239 103","237 109","237 114","237 121","237 126","237 132","237 132","237 138","237 142","238 148","240 155","247 164","253 173","261 181","267 190","278 200","283 204","287 212","295 219","299 224","309 230","319 235","328 237","338 243","349 248","360 252","371 256","380 261","387 265","396 270","403 274","409 281","415 286","419 290","423 296","427 300","433 309","436 313","441 321","445 328","446 331","451 337","453 341","458 347","463 355","468 362","471 372","476 382","478 391","482 403","483 412","484 421","484 427","484 434","484 439","484 444","484 449","482 457","479 461","475 465","467 473","462 476","456 480","451 481","440 486","436 487","427 489","421 490","410 492","399 493","385 495","372 495","358 495","343 495","329 495","310 495","298 495","281 495","261 489","247 487","231 481","219 476","209 470","203 467","199 463","195 454","193 445","193 435","193 427","193 417","195 409","202 399","210 390","215 384","218 378","223 371","227 364","231 356","234 349","238 345","243 341","249 336","255 335","263 330","267 329","273 328","276 325","280 323","285 319","289 316","293 311","301 305","307 299","315 290","321 282","328 272","333 264","336 255","341 247","345 239","347 232","353 224","353 219","357 214","360 206","364 202","366 197","369 193","373 185","374 181","375 175","375 169","375 164","375 156","375 156","375 150","375 144","375 138","374 132","374 126","372 121","372 116","371 111","368 105","368 102","367 97","367 95","367 91","369 89","371 87","374 84","377 84","380 84","384 84","390 84","395 84","402 84","410 84","421 85","435 89","447 92","458 95","468 98","479 102","487 103","494 108","498 110","500 113","500 114","501 117","501 118","502 122","503 126","504 132","507 136","510 143","513 149","517 156","520 160","524 168","525 171","526 175","529 184","531 187","532 193","532 200","532 208","535 217","537 229","538 237","539 249","542 261","544 269","548 281","550 292","553 303","556 311","556 323","556 332","556 343","556 350","556 360","556 368","556 378","556 383","556 390","556 393","556 397","554 400","552 404","549 407","546 411","543 417","538 423","534 427","527 431","521 435","509 440","501 445","490 448","482 452","470 458","463 458","452 463","445 466","434 468","424 471","415 471","403 473","390 473","377 473","364 473","350 473","341 473","327 470","313 465","302 460","291 451","281 441","274 431","268 421","263 409","261 403","261 391","261 379","261 368","261 355","261 342","261 329","261 314","264 301","269 286","274 272","279 260","286 248","293 236","300 226","306 218","313 210","317 202","324 195","324 195","330 189","336 181","341 174","348 169","354 165","359 163","367 157","375 155","384 151","396 145","404 144","418 138","431 135","441 132","453 130","467 125","477 122","490 118","506 117","520 111","532 108","547 104","561 101","577 99","596 96","614 95","637 90","663 87"];
+			
+			var THIS = this;
+			
+			var sendTimer = function(){
+				if(points.length <= 0){
+					THIS.sendEvent(null);
+					return;
+				}
+				var point = points.shift();
+				
+				THIS.sendEvent([point]);
+				
+				setTimeout(sendTimer, 6);
+			};
+			setTimeout(sendTimer, 0);
+//			$.each(points, function(index, point){
+//				THIS.sendEvent([point]);
+//			});
 		},
 		
 		sendEvent: function(points){
@@ -2216,6 +2264,7 @@
 				delete this.pointerMap[toolkitData.id];
 			}
 			//this.drawForMousePointer();
+			this.startDraw();
 		},	
 	}
 	$.pureCanvas.toolkit.addToolkit(MousePointer);

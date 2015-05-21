@@ -1,7 +1,8 @@
 $(document).ready(function(){
 	PureWebSocket.connect();
 	
-	$("#pureCanvas").pureCanvas();
+	$("#pureCanvas").pureCanvas({
+	});
 	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', 'http://spnimage.edaily.co.kr/images/photo/files/NP/S/2015/05/PS15051800042.jpg');
 	
 	$("#pureCanvas").on('complate.draw.pureCanvas', function(e){
