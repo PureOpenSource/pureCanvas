@@ -1,8 +1,6 @@
 /*********************************************************************************************
- * PureCanvas. v0.1-beta
+ * PureCanvas. v0.1
  * ===========================================================================================
- * homepage: http://pureopensource.github.io/pureCanvas/
- * 
  * Copyright 2015 Pure OpenSource.
  * Licensed under MIT (https://github.com/PureOpenSource/pureCanvas/blob/master/LICENSE)
  *********************************************************************************************/
@@ -40,7 +38,7 @@
 		this.makeCanvasEvent.call(this);
 	}
 
-	PureCanvas.VERSION = '0.1-beta';
+	PureCanvas.VERSION = '0.1';
 
 	PureCanvas.DEFIN = {
 		// 사용자 옵션으로 호출 가능한 prototype
