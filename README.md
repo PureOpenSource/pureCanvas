@@ -50,6 +50,8 @@ delayMousePoint|integer|5|마우스 포인트 전송 지연 시간(ms)
 resizeType|string|page|Canvavs 크기 설정, page: 쪽맞춤, rate: 비율
 rateVal|integer|1|화면 비율, 1 = 100%
 containerStyle|object||Container Element의 CSS
+pointFixed|integer|1|point 정보 소수점 자리수
+windowResizeEvent|boolean|true|windows resize event 실행 여부
 
 ```javascript
 $("#pureCanvas").pureCanvas({
