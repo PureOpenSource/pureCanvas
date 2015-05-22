@@ -461,18 +461,22 @@
 				var eDate = new Date();
 				console.debug("image loading time: %dms", eDate - sDate);
 
-				// 백그라운드 이미지 출력 완료 이벤트 발생
-				if(callbackFunction && typeof callbackFunction == 'function'){
-					callbackFunction.call();
-				}
 				try{
-					THIS.$element.trigger({
-						type: 'show.bg.pureCanvas',
-						imageData: {imageSrc: value}
-					});					
+					// 백그라운드 이미지 출력 완료 이벤트 발생
+					if(callbackFunction && typeof callbackFunction == 'function'){
+						callbackFunction({id: THIS.options.setting.id, imageSrc: value});
+					}
 				}catch(ex){
-					console.warn('show.bg.pureCanvas event error. [%s]', ex);
+					console.warn('callbackFunction event error. [%s]', ex);
 				}
+//				try{
+//					THIS.$element.trigger({
+//						type: 'show.bg.pureCanvas',
+//						imageData: {imageSrc: value}
+//					});					
+//				}catch(ex){
+//					console.warn('show.bg.pureCanvas event error. [%s]', ex);
+//				}
 				
 				THIS.loadingBar.call(THIS, 'hide');
 			}

@@ -3,7 +3,15 @@ $(document).ready(function(){
 	
 	$("#pureCanvas").pureCanvas({
 	});
-	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', 'http://spnimage.edaily.co.kr/images/photo/files/NP/S/2015/05/PS15051800042.jpg');
+	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', {
+		imageSrc: 'http://spnimage.edaily.co.kr/images/photo/files/NP/S/2015/05/PS15051800042.jpg',
+		callback: function(imageInfo){
+			var data = imageInfo;
+			data.eventType = 'bg';
+			
+			PureWebSocket.send(data);
+		}
+	});
 	
 	$("#pureCanvas").on('complate.draw.pureCanvas', function(e){
 		var data = e.drawData;
@@ -13,12 +21,12 @@ $(document).ready(function(){
 		PureWebSocket.send(data);
 	});
 	
-	$("#pureCanvas").on('show.bg.pureCanvas', function(e){
-		var data = e.imageData;
-		data.eventType = 'bg';
-		
-		PureWebSocket.send(data);
-	});
+//	$("#pureCanvas").on('show.bg.pureCanvas', function(e){
+//		var data = e.imageData;
+//		data.eventType = 'bg';
+//		
+//		PureWebSocket.send(data);
+//	});
 	
 	$("#pureCanvas").on('canvas-resize.pureCanvas', function(e){
 	});
@@ -81,7 +89,15 @@ $(document).ready(function(){
 			value = $this.attr('data-pure-canvas-value');
 		}
 		else if(optionType == 'backgroundImage'){
-			value = $this.prev().val();
+			value = {
+					imageSrc: $this.prev().val(),
+				callback: function(imageInfo){
+					var data = imageInfo;
+					data.eventType = 'bg';
+					
+					PureWebSocket.send(data);
+				}
+			}
 		}
 		else{
 			value = $this.val();
