@@ -1,5 +1,5 @@
 /*********************************************************************************************
- * PureCanvas. v0.1
+ * PureCanvas. v0.2
  * ===========================================================================================
  * Copyright 2015 Pure OpenSource.
  * Licensed under MIT (https://github.com/PureOpenSource/pureCanvas/blob/master/LICENSE)
@@ -117,6 +117,8 @@
 		createCanvas: function(){
 			// Canvas 정보
 			this.canvasInfo = {
+				// Record Canvas 생성 - bg + main + pointer
+				record: {domView: true, resize: true, clearView: false}, //true, true, false
 				// Background Canvas 생성 
 				bg: {domView: true, resize: true, clearView: false}, //true, true, false
 				// Main Canvas 생성 - view을 비율에 맞게 조정한 Canvas
@@ -291,7 +293,7 @@
 	PureCanvas.prototype.toolkit = function(targetName, value){
 		// getter
 		if(!targetName && value == undefined) return this.options.toolkit;
-		if(targetName && value == undefined) return this.options.toolkit[targetName];
+		if(targetName && value == undefined) return this.options.toolkit[targetName] || this.options.toolkit.style[targetName];
 		
 		// setter
 		return this.toolkit[targetName] ? this.toolkit[targetName].call(this, value) : undefined;
@@ -562,6 +564,9 @@
 			return {width: width, height: height};
 		},
 		
+		/**
+		 * 켄버스 리사이즈로 인한 다시 그리기 처리
+		 */
 		canvasResizeNDraw: function(data){
 			var width = data.width;
 			var height = data.height;
@@ -590,6 +595,7 @@
 
 				var mainCtx = this.canvasInfo.main.context;
 				var bgCtx = this.canvasInfo.bg.context;
+				var recordCtx = this.canvasInfo.record.context;
 				
 				// 메인의 draw data가 비율에 맞게 변경하여 다시 출력한다.
 				mainCtx.clearCanvas();
@@ -599,7 +605,17 @@
 				mainCtx.drawImage(this.canvasInfo.mView.canvas, 0, 0);
 				mainCtx.restore();
 				
+				// 이미지 표시
 				bgCtx.drawImage(imageInfo.image, 0, 0, width, height);
+				
+				// 녹화용 화면 출력
+				recordCtx.clearCanvas();
+				recordCtx.save();
+				recordCtx.drawImage(imageInfo.image, 0, 0, width, height);
+				recordCtx.setTransform(rateVal, 0, 0, rateVal, 0, 0);
+				recordCtx.drawImage(this.canvasInfo.view.canvas, 0, 0);
+				recordCtx.drawImage(this.canvasInfo.mView.canvas, 0, 0);
+				recordCtx.restore();
 				
 				imageInfo.isSetting = false;
 			}				
@@ -749,6 +765,7 @@
 		this.viewCtx = this.canvasInfo.view.context;
 		this.mViewCtx = this.canvasInfo.mView.context;
 		this.mainCtx = this.canvasInfo.main.context;
+		this.recordCtx = this.canvasInfo.record.context;
 		
 		// Toolit Event 생성
 		this.makeEvent();
@@ -992,6 +1009,9 @@
 			 * view, mview의 Image를 비율에 맞게 main에 draw한다.
 			 */
 			mainCanvasChange: function(flag){
+				var recordCanvas = this.canvasInfo.record.canvas;
+				var recordCtx = this.canvasInfo.record.context;
+				var bgCanvas = this.canvasInfo.bg.canvas;
 				var mainCanvas = this.canvasInfo.main.canvas;
 				var mainCtx = this.canvasInfo.main.context;
 				var viewCanvas = this.canvasInfo.view.canvas;
@@ -1012,6 +1032,19 @@
 				mainCtx.drawImage(viewCanvas, 0, 0);
 				mainCtx.drawImage(mviewCanvas, 0, 0);
 				mainCtx.restore();
+				
+				// 녹화용
+				recordCtx.save();
+				recordCtx.clearCanvas();
+				recordCtx.drawImage(bgCanvas, 0, 0);
+				//recordCtx.setTransform(setting.rateVal, 0, 0, setting.rateVal, 0, 0);
+				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
+				recordCtx.globalCompositeOperation = 'source-over';
+				// target canvas에 source canvas를 덥어 그린다.
+				//recordCtx.drawImage(viewCanvas, 0, 0);
+				//recordCtx.drawImage(mviewCanvas, 0, 0);
+				recordCtx.drawImage(mainCanvas, 0, 0);
+				recordCtx.restore();
 			},
 		},
 		
@@ -1310,6 +1343,7 @@
 			
 			this.viewCtx.globalCompositeOperation = "destination-out";
 			this.mainCtx.globalCompositeOperation = "destination-out";
+			this.recordCtx.globalCompositeOperation = "destination-out";
 			
 			this.drawing(e);			
 		},
@@ -1338,6 +1372,28 @@
 			if(this.isEraser){
 				this.sendDrawData(this.pointsRate);
 				this.$element.data('pure.pureCanvas').historyAdd();
+				
+				// 녹화용
+				var recordCanvas = this.canvasInfo.record.canvas;
+				var recordCtx = this.canvasInfo.record.context;
+				var bgCanvas = this.canvasInfo.bg.canvas;
+				var mainCanvas = this.canvasInfo.main.canvas;
+				var viewCanvas = this.canvasInfo.view.canvas;
+				var mviewCanvas = this.canvasInfo.mView.canvas;
+				var pointerCanvas = this.canvasInfo.pointer.canvas;
+				
+				var setting = this.$element.data('pure.pureCanvas').options.setting;
+				
+				// 녹화용
+				recordCtx.save();
+				recordCtx.clearCanvas();
+				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
+				recordCtx.globalCompositeOperation = 'source-over';
+				recordCtx.drawImage(bgCanvas, 0, 0);
+				// target canvas에 source canvas를 덥어 그린다.
+				recordCtx.drawImage(mainCanvas, 0, 0);
+				//recordCtx.drawImage(pointerCanvas, 0, 0);
+				recordCtx.restore();
 			}
 			
 			this.isEraser = false;
@@ -2138,6 +2194,31 @@
 			//this.drawForMousePointer();
 			this.startDraw();
 			
+			// 녹화용
+			var recordCanvas = this.canvasInfo.record.canvas;
+			var recordCtx = this.canvasInfo.record.context;
+			var bgCanvas = this.canvasInfo.bg.canvas;
+			var mainCanvas = this.canvasInfo.main.canvas;
+			var viewCanvas = this.canvasInfo.view.canvas;
+			var mviewCanvas = this.canvasInfo.mView.canvas;
+			var pointerCanvas = this.canvasInfo.pointer.canvas;
+			
+			var setting = this.$element.data('pure.pureCanvas').options.setting;
+			
+			if(this.isDrawing){
+				// 녹화용
+				recordCtx.save();
+				recordCtx.clearCanvas();
+				recordCtx.drawImage(bgCanvas, 0, 0);
+				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
+				recordCtx.globalCompositeOperation = 'source-over';
+				// target canvas에 source canvas를 덥어 그린다.
+				recordCtx.drawImage(mainCanvas, 0, 0);
+				//recordCtx.setTransform(0, 0, 0, 0, 0, 0);
+				recordCtx.drawImage(pointerCanvas, 0, 0);
+				recordCtx.restore();
+			}
+			
 			// over시 전송일 경우, 클릭시 전송일 경우 이벤트 호출
 			if((!this.setting.pointerDownSend) || (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent([e.point.rate]);
@@ -2150,6 +2231,28 @@
 			//this.drawForMousePointer();
 			this.startDraw();
 			
+			// 녹화용
+			var recordCanvas = this.canvasInfo.record.canvas;
+			var recordCtx = this.canvasInfo.record.context;
+			var bgCanvas = this.canvasInfo.bg.canvas;
+			var mainCanvas = this.canvasInfo.main.canvas;
+			var viewCanvas = this.canvasInfo.view.canvas;
+			var mviewCanvas = this.canvasInfo.mView.canvas;
+			var pointerCanvas = this.canvasInfo.pointer.canvas;
+			
+			var setting = this.$element.data('pure.pureCanvas').options.setting;
+			
+			// 녹화용
+			recordCtx.save();
+			recordCtx.clearCanvas();
+			recordCtx.drawImage(bgCanvas, 0, 0);
+			// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
+			recordCtx.globalCompositeOperation = 'source-over';
+			// target canvas에 source canvas를 덥어 그린다.
+			recordCtx.drawImage(mainCanvas, 0, 0);
+			//recordCtx.drawImage(pointerCanvas, 0, 0);
+			recordCtx.restore();
+			
 			if(this.setting.pointerDownSend){
 				this.sendEvent(null);
 			}
@@ -2161,6 +2264,28 @@
 			this.pointerMap.me = null;				
 			//this.drawForMousePointer();
 			this.startDraw();
+			
+			// 녹화용
+			var recordCanvas = this.canvasInfo.record.canvas;
+			var recordCtx = this.canvasInfo.record.context;
+			var bgCanvas = this.canvasInfo.bg.canvas;
+			var mainCanvas = this.canvasInfo.main.canvas;
+			var viewCanvas = this.canvasInfo.view.canvas;
+			var mviewCanvas = this.canvasInfo.mView.canvas;
+			var pointerCanvas = this.canvasInfo.pointer.canvas;
+			
+			var setting = this.$element.data('pure.pureCanvas').options.setting;
+			
+			// 녹화용
+			recordCtx.save();
+			recordCtx.clearCanvas();
+			recordCtx.drawImage(bgCanvas, 0, 0);
+			// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
+			recordCtx.globalCompositeOperation = 'source-over';
+			// target canvas에 source canvas를 덥어 그린다.
+			recordCtx.drawImage(mainCanvas, 0, 0);
+			//recordCtx.drawImage(pointerCanvas, 0, 0);
+			recordCtx.restore();
 			
 			if((!this.setting.pointerDownSend)|| (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent(null);
@@ -2200,7 +2325,7 @@
 		
 		drawForMousePointer: function(ctx){
 			if(!ctx) ctx = this.canvasInfo.pointer.context;
-				
+			
 			var THIS = this;
 			ctx.clearCanvas();
 			
@@ -2250,7 +2375,7 @@
 		      	ctx.fill();
 		      	
 				ctx.closePath();
-				ctx.restore();				
+				ctx.restore();	
 			});
 		},
 		
