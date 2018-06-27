@@ -3,7 +3,7 @@ $(document).ready(function(){
 	
 	$("#pureCanvas").pureCanvas({
 	});
-	$("#pureCanvas").pureCanvas('setting', 'backgroundImage', {
+	/*$("#pureCanvas").pureCanvas('setting', 'backgroundImage', {
 		imageSrc: 'http://spnimage.edaily.co.kr/images/photo/files/NP/S/2015/05/PS15051800042.jpg',
 		callback: function(imageInfo){
 			var data = imageInfo;
@@ -11,7 +11,7 @@ $(document).ready(function(){
 			
 			PureWebSocket.send(data);
 		}
-	});
+	});*/
 	
 	$("#pureCanvas").on('complate.draw.pureCanvas', function(e){
 		var data = e.drawData;
@@ -55,7 +55,7 @@ $(document).ready(function(){
 			type: 'rate',
 			rateVal: $this.val()
 		}
-		
+		$('#rateval').html($this.val());
 		PureWebSocket.send(data);
 	});
 	
@@ -85,6 +85,16 @@ $(document).ready(function(){
 		if($this.attr('data-pure-canvas-value') == 'rate'){
 			value = {'type': 'rate', 'rateVal': $this.val()};
 		}
+		else if($this.attr('data-pure-canvas-type') == 'zoom'){
+			var zoom = Number($('#zoom').val());
+			if($this.attr('id') == 'zoomprev'){
+				zoom = zoom + 10;
+			}else{
+				zoom = zoom - 10;
+			}
+			value = zoom / 100;
+			$('#zoom').val(zoom);
+		}
 		else if(optionType == 'type' || $this.attr('data-pure-canvas-value')){
 			value = $this.attr('data-pure-canvas-value');
 		}
@@ -107,11 +117,16 @@ $(document).ready(function(){
 		
 	});
 	
-	$(window).on('resize', function(){
+	var r = function(){
 		var body = $(document.body);
 		$("#pureCanvas").css({width: $(window).width() - 350, height: $(window).height() - 50});
+		$("#pureCanvas").pureCanvas('resize');
+	}
+
+	$(window).on('resize', function(){
+		r();
 	});
-	
+	//r();
 });
 
 
