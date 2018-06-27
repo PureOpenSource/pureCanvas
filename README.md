@@ -49,6 +49,7 @@ pointerDownSend|boolean|true|마우스 포인트, 마우스 클릭 시 전송 �
 delayMousePoint|integer|5|마우스 포인트 전송 지연 시간(ms)
 resizeType|string|page|Canvavs 크기 설정, page: 쪽맞춤, rate: 비율
 rateVal|integer|1|화면 비율, 1 = 100%
+zoom|integer|1|화면 확대 비율, 1 = 100%, rateVal와 합쳐서 비율 조정
 containerStyle|object||Container Element의 CSS
 pointFixed|integer|1|point 정보 소수점 자리수
 windowResizeEvent|boolean|true|windows resize event 실행 여부
@@ -92,7 +93,8 @@ authForDraw|그리기 권한 설정
 pointerForDraw|마우스포인터 사용 권한 설정
 pointerDownSend|마우스포인터 클릭 시 전송 여부 설정
 backgroundImage|배경 이미지 설정
-resizeType|확대/축소 타입 설정
+resizeType|resizeType, rateVal 설정, resizeType이 'rate'인 경우 value 값을 'rate_[비율]' 또는 {type:'rate',reteVal:[비율]}
+zoom|화면 확대 비율
 scroll|스크롤 위치 변경
 
 ```javascript
