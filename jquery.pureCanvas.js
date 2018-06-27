@@ -1,7 +1,7 @@
 /*********************************************************************************************
- * PureCanvas. v0.2
+ * PureCanvas. v0.3
  * ===========================================================================================
- * Copyright 2015 Pure OpenSource.
+ * Copyright 2018 Pure OpenSource.
  * Licensed under MIT (https://github.com/PureOpenSource/pureCanvas/blob/master/LICENSE)
  *********************************************************************************************/
 
@@ -72,7 +72,9 @@
 			resizeType: 'rate',
 			// 화면 비율 정보(page일 경우 size에 맞게 계산, rate일 경우 입력 값) 1 = 100%
 			rateVal: 1,
-			
+			// 화면 비율 가중치(화면 비율과 상관없이 확대/축소) 1 = 100%
+			zoom: 1,
+
 			// 마우스포인터 전송 지연 시간(ms)
 			delayMousePoint: 3,
 			
@@ -117,8 +119,6 @@
 		createCanvas: function(){
 			// Canvas 정보
 			this.canvasInfo = {
-				// Record Canvas 생성 - bg + main + pointer
-				record: {domView: true, resize: true, clearView: false}, //true, true, false
 				// Background Canvas 생성 
 				bg: {domView: true, resize: true, clearView: false}, //true, true, false
 				// Main Canvas 생성 - view을 비율에 맞게 조정한 Canvas
@@ -143,7 +143,6 @@
 				.css({'display': 'block', 'position': 'absolute', 'overflow': 'auto', 'width': 'inherit', 'height': 'inherit'})
 				.appendTo(this.$element); 
 			var $container = $('<div></div>').attr('data-pure-canvas', 'container')
-				//.css({'border': '1px solid'})
 				.css(this.options.setting.containerStyle)
 				.appendTo($main);
 			
@@ -158,8 +157,6 @@
 				var $canvas = $('<canvas></canvas>').attr('data-pure-canvas-type', key);
 				this.settingDefaultStyle($canvas);
 				if(data.domView) this.$container.append($canvas);
-				//if(!data.domView) $canvas.css({'display': 'none'});
-				//$container.append($canvas);
 				
 				// Canvas 추가 정보 설정
 				data.type = key;
@@ -469,15 +466,7 @@
 				}catch(ex){
 					console.warn('callbackFunction event error. [%s]', ex);
 				}
-//				try{
-//					THIS.$element.trigger({
-//						type: 'show.bg.pureCanvas',
-//						imageData: {imageSrc: value}
-//					});					
-//				}catch(ex){
-//					console.warn('show.bg.pureCanvas event error. [%s]', ex);
-//				}
-				
+			
 				THIS.loadingBar.call(THIS, 'hide');
 			}
 			image.onerror = function(){
@@ -508,7 +497,13 @@
 			
 			console.debug('setting resizeType: ' + this.options.setting.resizeType, this.options.setting.rateVal);			
 		},
-		
+		zoom: function(value){
+			this.options.setting.zoom = value;
+
+			// canvas resize 호출
+			this.imageInfo.isSetting = true;
+			this.resize();
+		},
 		scroll: function(value){
 			this.pureCanvasToolkit.recvScrollData(value);
 		}
@@ -536,10 +531,12 @@
 		rate: function(){
 			var imageInfo = this.imageInfo;
 			var rateVal = this.options.setting.rateVal;
-			
+			var zoom = this.options.setting.zoom;
+			zoom = (zoom == 0 ? 1 : zoom);
+
 			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
-			var width = imageInfo.orgImageWidth * rateVal;
-			var height = imageInfo.orgImageHeight * rateVal;
+			var width = imageInfo.orgImageWidth * (rateVal * zoom);
+			var height = imageInfo.orgImageHeight * (rateVal * zoom);
 			
 			return {width: width, height: height};
 		},
@@ -553,11 +550,15 @@
 			var rateHeight = this.$main.height() / imageInfo.orgImageHeight;
 			// 가로, 세로 중 비율 정보가 작은 값 사용
 			var rateVal = (rateWidth > rateHeight) ? rateHeight : rateWidth;
+			// 비율이 100%가 넘는 경우 원본 크기로 표시 
+			if(rateVal > 1) rateVal = 1;
 			this.options.setting.rateVal = rateVal;
-			
+			var zoom = this.options.setting.zoom;
+			zoom = (zoom == 0 ? 1 : zoom);
+
 			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
-			var width = imageInfo.orgImageWidth * rateVal;
-			var height = imageInfo.orgImageHeight * rateVal;
+			var width = imageInfo.orgImageWidth * (rateVal * zoom);
+			var height = imageInfo.orgImageHeight * (rateVal * zoom);
 			
 			// 쪽맞춤일 경우 window.resize에 따라 이미지 크기가 변경됨으로 true 값 설정
 			imageInfo.isSetting = true;
@@ -595,7 +596,6 @@
 
 				var mainCtx = this.canvasInfo.main.context;
 				var bgCtx = this.canvasInfo.bg.context;
-				var recordCtx = this.canvasInfo.record.context;
 				
 				// 메인의 draw data가 비율에 맞게 변경하여 다시 출력한다.
 				mainCtx.clearCanvas();
@@ -607,15 +607,6 @@
 				
 				// 이미지 표시
 				bgCtx.drawImage(imageInfo.image, 0, 0, width, height);
-				
-				// 녹화용 화면 출력
-				recordCtx.clearCanvas();
-				recordCtx.save();
-				recordCtx.drawImage(imageInfo.image, 0, 0, width, height);
-				recordCtx.setTransform(rateVal, 0, 0, rateVal, 0, 0);
-				recordCtx.drawImage(this.canvasInfo.view.canvas, 0, 0);
-				recordCtx.drawImage(this.canvasInfo.mView.canvas, 0, 0);
-				recordCtx.restore();
 				
 				imageInfo.isSetting = false;
 			}				
@@ -765,8 +756,7 @@
 		this.viewCtx = this.canvasInfo.view.context;
 		this.mViewCtx = this.canvasInfo.mView.context;
 		this.mainCtx = this.canvasInfo.main.context;
-		this.recordCtx = this.canvasInfo.record.context;
-		
+				
 		// Toolit Event 생성
 		this.makeEvent();
 	}
@@ -1009,9 +999,6 @@
 			 * view, mview의 Image를 비율에 맞게 main에 draw한다.
 			 */
 			mainCanvasChange: function(flag){
-				var recordCanvas = this.canvasInfo.record.canvas;
-				var recordCtx = this.canvasInfo.record.context;
-				var bgCanvas = this.canvasInfo.bg.canvas;
 				var mainCanvas = this.canvasInfo.main.canvas;
 				var mainCtx = this.canvasInfo.main.context;
 				var viewCanvas = this.canvasInfo.view.canvas;
@@ -1032,19 +1019,6 @@
 				mainCtx.drawImage(viewCanvas, 0, 0);
 				mainCtx.drawImage(mviewCanvas, 0, 0);
 				mainCtx.restore();
-				
-				// 녹화용
-				recordCtx.save();
-				recordCtx.clearCanvas();
-				recordCtx.drawImage(bgCanvas, 0, 0);
-				//recordCtx.setTransform(setting.rateVal, 0, 0, setting.rateVal, 0, 0);
-				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
-				recordCtx.globalCompositeOperation = 'source-over';
-				// target canvas에 source canvas를 덥어 그린다.
-				//recordCtx.drawImage(viewCanvas, 0, 0);
-				//recordCtx.drawImage(mviewCanvas, 0, 0);
-				recordCtx.drawImage(mainCanvas, 0, 0);
-				recordCtx.restore();
 			},
 		},
 		
@@ -1343,7 +1317,6 @@
 			
 			this.viewCtx.globalCompositeOperation = "destination-out";
 			this.mainCtx.globalCompositeOperation = "destination-out";
-			this.recordCtx.globalCompositeOperation = "destination-out";
 			
 			this.drawing(e);			
 		},
@@ -1372,28 +1345,6 @@
 			if(this.isEraser){
 				this.sendDrawData(this.pointsRate);
 				this.$element.data('pure.pureCanvas').historyAdd();
-				
-				// 녹화용
-				var recordCanvas = this.canvasInfo.record.canvas;
-				var recordCtx = this.canvasInfo.record.context;
-				var bgCanvas = this.canvasInfo.bg.canvas;
-				var mainCanvas = this.canvasInfo.main.canvas;
-				var viewCanvas = this.canvasInfo.view.canvas;
-				var mviewCanvas = this.canvasInfo.mView.canvas;
-				var pointerCanvas = this.canvasInfo.pointer.canvas;
-				
-				var setting = this.$element.data('pure.pureCanvas').options.setting;
-				
-				// 녹화용
-				recordCtx.save();
-				recordCtx.clearCanvas();
-				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
-				recordCtx.globalCompositeOperation = 'source-over';
-				recordCtx.drawImage(bgCanvas, 0, 0);
-				// target canvas에 source canvas를 덥어 그린다.
-				recordCtx.drawImage(mainCanvas, 0, 0);
-				//recordCtx.drawImage(pointerCanvas, 0, 0);
-				recordCtx.restore();
 			}
 			
 			this.isEraser = false;
@@ -2193,32 +2144,7 @@
 			this.pointerMap.me = {style: this.toolkit.style, points: e.point.org}
 			//this.drawForMousePointer();
 			this.startDraw();
-			
-			// 녹화용
-			var recordCanvas = this.canvasInfo.record.canvas;
-			var recordCtx = this.canvasInfo.record.context;
-			var bgCanvas = this.canvasInfo.bg.canvas;
-			var mainCanvas = this.canvasInfo.main.canvas;
-			var viewCanvas = this.canvasInfo.view.canvas;
-			var mviewCanvas = this.canvasInfo.mView.canvas;
-			var pointerCanvas = this.canvasInfo.pointer.canvas;
-			
-			var setting = this.$element.data('pure.pureCanvas').options.setting;
-			
-			if(this.isDrawing){
-				// 녹화용
-				recordCtx.save();
-				recordCtx.clearCanvas();
-				recordCtx.drawImage(bgCanvas, 0, 0);
-				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
-				recordCtx.globalCompositeOperation = 'source-over';
-				// target canvas에 source canvas를 덥어 그린다.
-				recordCtx.drawImage(mainCanvas, 0, 0);
-				//recordCtx.setTransform(0, 0, 0, 0, 0, 0);
-				recordCtx.drawImage(pointerCanvas, 0, 0);
-				recordCtx.restore();
-			}
-			
+		
 			// over시 전송일 경우, 클릭시 전송일 경우 이벤트 호출
 			if((!this.setting.pointerDownSend) || (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent([e.point.rate]);
@@ -2231,28 +2157,6 @@
 			//this.drawForMousePointer();
 			this.startDraw();
 			
-			// 녹화용
-			var recordCanvas = this.canvasInfo.record.canvas;
-			var recordCtx = this.canvasInfo.record.context;
-			var bgCanvas = this.canvasInfo.bg.canvas;
-			var mainCanvas = this.canvasInfo.main.canvas;
-			var viewCanvas = this.canvasInfo.view.canvas;
-			var mviewCanvas = this.canvasInfo.mView.canvas;
-			var pointerCanvas = this.canvasInfo.pointer.canvas;
-			
-			var setting = this.$element.data('pure.pureCanvas').options.setting;
-			
-			// 녹화용
-			recordCtx.save();
-			recordCtx.clearCanvas();
-			recordCtx.drawImage(bgCanvas, 0, 0);
-			// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
-			recordCtx.globalCompositeOperation = 'source-over';
-			// target canvas에 source canvas를 덥어 그린다.
-			recordCtx.drawImage(mainCanvas, 0, 0);
-			//recordCtx.drawImage(pointerCanvas, 0, 0);
-			recordCtx.restore();
-			
 			if(this.setting.pointerDownSend){
 				this.sendEvent(null);
 			}
@@ -2264,28 +2168,6 @@
 			this.pointerMap.me = null;				
 			//this.drawForMousePointer();
 			this.startDraw();
-			
-			// 녹화용
-			var recordCanvas = this.canvasInfo.record.canvas;
-			var recordCtx = this.canvasInfo.record.context;
-			var bgCanvas = this.canvasInfo.bg.canvas;
-			var mainCanvas = this.canvasInfo.main.canvas;
-			var viewCanvas = this.canvasInfo.view.canvas;
-			var mviewCanvas = this.canvasInfo.mView.canvas;
-			var pointerCanvas = this.canvasInfo.pointer.canvas;
-			
-			var setting = this.$element.data('pure.pureCanvas').options.setting;
-			
-			// 녹화용
-			recordCtx.save();
-			recordCtx.clearCanvas();
-			recordCtx.drawImage(bgCanvas, 0, 0);
-			// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
-			recordCtx.globalCompositeOperation = 'source-over';
-			// target canvas에 source canvas를 덥어 그린다.
-			recordCtx.drawImage(mainCanvas, 0, 0);
-			//recordCtx.drawImage(pointerCanvas, 0, 0);
-			recordCtx.restore();
 			
 			if((!this.setting.pointerDownSend)|| (this.setting.pointerDownSend && this.isDrawing)){
 				this.sendEvent(null);
