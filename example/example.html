@@ -20,9 +20,9 @@
 
 </div>
 <div style="float: left;">
-	<div id="pureCanvas" style="width: 600px; height: 400px; border: 1px solid;"></div>
+	<div id="pureCanvas" style="width: 1000px; height: 800px; border: 1px solid;"></div>
 </div>
-<div id="purePallete" class="paint_menu" style="border: 1px solid; width: 180px; height: 400px; float: left;" >
+<div id="purePallete" class="paint_menu" style="border: 1px solid; width: 250px; height: 500px; float: left;" >
 	<button type="button" id="cursor" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="Cursor">커서</button>
 	<button type="button" id="handCursor" data-pure-canvas-option='toolkit' data-pure-canvas-type='type' data-pure-canvas-value="HandCursor">핸드커서</button>
 	<br>
@@ -50,7 +50,12 @@
 	<br>
 	
 	비율: <input type="range" id="rate" value="100" min="10" max="200" step="10" data-pure-canvas-option='setting' data-pure-canvas-type='resizeType' data-pure-canvas-value="rate">
+	<div id="rateval"></div>
 	<button type="button" id="page" data-pure-canvas-option='setting' data-pure-canvas-type='resizeType' data-pure-canvas-value="page">쪽맞춤</button>
+	<br>
+	<input type="text" id="zoom" value="100" readonly>
+	<button type="button" id="zoomprev" data-pure-canvas-option='setting' data-pure-canvas-type='zoom'> + </button>
+	<button type="button" id="zoomnext" data-pure-canvas-option='setting' data-pure-canvas-type='zoom'> - </button>
 	<br>
 	<button type="button" id="prev" data-pure-canvas-option='history' data-pure-canvas-type='prev'>이전</button>
 	<button type="button" id="next" data-pure-canvas-option='history' data-pure-canvas-type='next'>다음</button>
