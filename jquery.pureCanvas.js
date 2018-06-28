@@ -38,7 +38,7 @@
 		this.makeCanvasEvent.call(this);
 	}
 
-	PureCanvas.VERSION = '0.1';
+	PureCanvas.VERSION = '0.3';
 
 	PureCanvas.DEFIN = {
 		// 사용자 옵션으로 호출 가능한 prototype
@@ -112,6 +112,14 @@
 	            return v.toString(16);
 	        });	
 	        return uuid;
+		},
+		/**
+		* 비율(rateVal * zoom)
+		*/
+		getRate: function(){
+			var rateVal = this.options.setting.rateVal;
+			var zoom = this.options.setting.zoom;
+			return rateVal * (zoom <= 0 ? 1 : zoom);
 		},
 		/**
 		 * Create Canvas Element & Info
@@ -274,12 +282,12 @@
 				messageBox.css({'margin-top': top}).html(message);
 
 				// fade show
-				this.loadingBarDiv.fadeIn(500);
+				this.loadingBarDiv.fadeIn(300);
 			}
 			// Hide
 			else if(option === 'hide'){
 				// fade hide
-				this.loadingBarDiv.fadeOut(500);
+				this.loadingBarDiv.fadeOut(300);
 			}
 		},
 	});
@@ -490,7 +498,8 @@
 				this.options.setting.resizeType = value.type;
 				this.options.setting.rateVal = value.rateVal ? value.rateVal / 100 : 1;
 			}
-			
+			this.options.setting.zoom = 1;
+
 			// canvas resize 호출
 			this.imageInfo.isSetting = true;
 			this.resize();
@@ -530,13 +539,10 @@
 		// 비율(%)
 		rate: function(){
 			var imageInfo = this.imageInfo;
-			var rateVal = this.options.setting.rateVal;
-			var zoom = this.options.setting.zoom;
-			zoom = (zoom == 0 ? 1 : zoom);
-
+			
 			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
-			var width = imageInfo.orgImageWidth * (rateVal * zoom);
-			var height = imageInfo.orgImageHeight * (rateVal * zoom);
+			var width = imageInfo.orgImageWidth * this.getRate();
+			var height = imageInfo.orgImageHeight * this.getRate();
 			
 			return {width: width, height: height};
 		},
@@ -553,12 +559,10 @@
 			// 비율이 100%가 넘는 경우 원본 크기로 표시 
 			if(rateVal > 1) rateVal = 1;
 			this.options.setting.rateVal = rateVal;
-			var zoom = this.options.setting.zoom;
-			zoom = (zoom == 0 ? 1 : zoom);
 
 			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
-			var width = imageInfo.orgImageWidth * (rateVal * zoom);
-			var height = imageInfo.orgImageHeight * (rateVal * zoom);
+			var width = imageInfo.orgImageWidth * this.getRate();
+			var height = imageInfo.orgImageHeight * this.getRate();
 			
 			// 쪽맞춤일 경우 window.resize에 따라 이미지 크기가 변경됨으로 true 값 설정
 			imageInfo.isSetting = true;
@@ -573,7 +577,6 @@
 			var height = data.height;
 			
 			var imageInfo = this.imageInfo;
-			var rateVal = this.options.setting.rateVal;
 			
 			// 왼쪽, 위 마진 정보 계산,
 			var marginLeft = this.$main.width() / 2 - (width / 2);
@@ -600,7 +603,7 @@
 				// 메인의 draw data가 비율에 맞게 변경하여 다시 출력한다.
 				mainCtx.clearCanvas();
 				mainCtx.save();
-				mainCtx.setTransform(rateVal, 0, 0, rateVal, 0, 0);
+				mainCtx.setTransform(this.getRate(), 0, 0, this.getRate(), 0, 0);
 				mainCtx.drawImage(this.canvasInfo.view.canvas, 0, 0);
 				mainCtx.drawImage(this.canvasInfo.mView.canvas, 0, 0);
 				mainCtx.restore();
@@ -763,6 +766,14 @@
 
 	$.extend($.pureCanvas.toolkit, {
 		prototype: {
+			/**
+			* 비율(rateVal * zoom)
+			*/
+			getRate: function(){
+				var rateVal = this.options.setting.rateVal;
+				var zoom = this.options.setting.zoom;
+				return rateVal * (zoom <= 0 ? 1 : zoom);
+			},
 			makeEvent: function(){
 				var THIS = this;
 				
@@ -877,9 +888,8 @@
 				}
 
 				// 비율에 따른 좌표 계산
-				var rateVal = this.setting.rateVal;
-				var rx = Math.round(x / rateVal, this.setting.pointFixed);
-				var ry = Math.round(y / rateVal, this.setting.pointFixed);
+				var rx = Math.round(x / this.getRate(), this.setting.pointFixed);
+				var ry = Math.round(y / this.getRate(), this.setting.pointFixed);
 				//var rx = (x / rateVal).toFixed(this.setting.pointFixed);
 				//var ry = (y / rateVal).toFixed(this.setting.pointFixed);
 				
@@ -960,8 +970,9 @@
 			 */
 			getDrawStyle: function(){
 				var style = $.extend({}, this.toolkit.style);
+
 				style.orgLineWidth = style.lineWidth;
-				style.lineWidth = style.orgLineWidth * this.setting.rateVal;
+				style.lineWidth = style.orgLineWidth * this.getRate();
 				
 				return style;
 			},
@@ -1012,7 +1023,7 @@
 				
 				mainCtx.save();
 				mainCtx.clearCanvas();
-				mainCtx.setTransform(setting.rateVal, 0, 0, setting.rateVal, 0, 0);
+				mainCtx.setTransform(this.getRate(), 0, 0, this.getRate(), 0, 0);
 				// source-over : 새 도형은 기존 내용 위에 그려진다. 기본값
 				mainCtx.globalCompositeOperation = 'source-over';
 				// target canvas에 source canvas를 덥어 그린다.
@@ -2232,8 +2243,8 @@
 				var point = THIS.getPointSplit(drawPoints[0]);
 				
 				if(key != 'me'){
-					point.x *= THIS.setting.rateVal;
-					point.y *= THIS.setting.rateVal;
+					point.x *= THIS.getRate();
+					point.y *= THIS.getRate();
 				}
 				
 				ctx.save();
