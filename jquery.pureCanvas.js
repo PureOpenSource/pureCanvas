@@ -1,5 +1,5 @@
 /*********************************************************************************************
- * PureCanvas. v0.3
+ * PureCanvas. v0.5
  * ===========================================================================================
  * Copyright 2018 Pure OpenSource.
  * Licensed under MIT (https://github.com/PureOpenSource/pureCanvas/blob/master/LICENSE)
@@ -38,7 +38,7 @@
 		this.makeCanvasEvent.call(this);
 	}
 
-	PureCanvas.VERSION = '0.3';
+	PureCanvas.VERSION = '0.5';
 
 	PureCanvas.DEFIN = {
 		// 사용자 옵션으로 호출 가능한 prototype
@@ -74,15 +74,37 @@
 			rateVal: 1,
 			// 화면 비율 가중치(화면 비율과 상관없이 확대/축소) 1 = 100%
 			zoom: 1,
-
+			
+			// 지원 폰트 목록
+			supportFont: [
+				{name:'Arial'		, fontFamily:'Arial'},
+				{name:'Courier'		, fontFamily:'Courier'},
+				{name:'Times'		, fontFamily:'Times'},
+				{name:'Verdana'		, fontFamily:'Verdana'},
+				{name:'굴림'			, fontFamily:'Gulim'},
+				{name:'돋움'			, fontFamily:'Dotum'},
+				{name:'바탕'			, fontFamily:'Batang'},
+				{name:'궁서'			, fontFamily:'Gungsuh'},
+				{name:'맑은 고딕'		, fontFamily:'Malgun Gothic'},
+			],
+			
 			// 마우스포인터 전송 지연 시간(ms)
 			delayMousePoint: 3,
 			
+			// MainCanver width Style
+			mainStyle: {
+				width: 'inherit'
+			},
 			containerStyle: {},
 			// point 비율 계산에 따른 소수점 자리수
 			pointFixed: 1,
 			//autoWindowResize
 			windowResizeEvent: true,
+		},
+		// 로팅바 옵션
+		loadingBar: {
+			use: true,
+			message: 'Loading...'
 		},
 		// Toolkit 정보
 		toolkit: {
@@ -99,6 +121,18 @@
 				// 선 굴기
 				lineWidth: 5,
 			},
+			font: {
+				// 글자 크기
+				fontSize: 14,
+				// 글꼴
+				fontFamily: 'Gulim',
+				// 굵게
+				fontTypeBold: false,
+				// 기울림
+				fontTypeItalic: false,
+				// 밑줄
+				fontTypeUnderline: false,
+			}
 		},
 	}
 
@@ -107,11 +141,11 @@
 		 * Create UUID
 		 */
 		createUUID: function(){
-	        var uuid = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-	            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-	            return v.toString(16);
-	        });	
-	        return uuid;
+			var uuid = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+				var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+				return v.toString(16);
+			});	
+			return uuid;
 		},
 		/**
 		* 비율(rateVal * zoom)
@@ -148,7 +182,7 @@
 			// Style & Attribute setting, append element
 			this.$element.css({'display': 'table'}).attr('data-pure-canvas', 'element');
 			var $main = $('<div></div>').attr('data-pure-canvas', 'main')
-				.css({'display': 'block', 'position': 'absolute', 'overflow': 'auto', 'width': 'inherit', 'height': 'inherit'})
+				.css({'display': 'block', 'position': 'absolute', 'overflow': 'auto', 'width': this.options.setting.mainStyle.width, 'height': 'inherit'})
 				.appendTo(this.$element); 
 			var $container = $('<div></div>').attr('data-pure-canvas', 'container')
 				.css(this.options.setting.containerStyle)
@@ -173,7 +207,7 @@
 				data.context = $canvas.get(0).getContext('2d');
 			}
 
-			console.debug(this.canvasInfo);
+			//console.debug(this.canvasInfo);
 		},
 		
 		/**
@@ -214,27 +248,27 @@
 				var type = e.type;
 				var callMethod = null;
 				switch (type) {
-				case 'mousedown':
-				case 'touchstart':
-					callMethod = 'drawStart';
-					
-					// Touch가 아닌 경우(Mouse 인 경우) 왼쪽 클릭 만 허용함.
-					if(!e.isTouch && e.button !== 0){
-						return;
-					}
-					break;
-				case 'mousemove':
-				//case 'mouseover':
-				case 'touchmove':
-					callMethod = 'drawing';
-					break;
-				case 'mouseup':
-				case 'touchend':
-					callMethod = 'drawEnd';
-					break;
-				case 'mouseout':
-					callMethod = 'drawOut';
-					break;
+					case 'mousedown':
+					case 'touchstart':
+						callMethod = 'drawStart';
+						
+						// Touch가 아닌 경우(Mouse 인 경우) 왼쪽 클릭 만 허용함.
+						if(!e.isTouch && e.button !== 0){
+							return;
+						}
+						break;
+					case 'mousemove':
+					//case 'mouseover':
+					case 'touchmove':
+						callMethod = 'drawing';
+						break;
+					case 'mouseup':
+					case 'touchend':
+						callMethod = 'drawEnd';
+						break;
+					case 'mouseout':
+						callMethod = 'drawOut';
+						break;
 				}
 				
 				// 추가 이벤트 정보 설정
@@ -252,13 +286,53 @@
 				}catch(ex){
 					console.warn('drawEvent-%s event error. [%s]', toolkit.type, ex);
 				}
-			})
+			});
+			
+			$('body').on('mouseup touchend', function(e){
+				// 그리기 권한이 없는 경우 이벤트를 수행하지 않음.
+				if(!setting.authForDraw){
+					return;
+				}
+				// Touch Event인 경우 처리
+				if(e.type.indexOf('touch') >= 0){
+					e.preventDefault();
+					e.isTouch = true;
+				}
+				
+				// 이벤트 분류
+				var type = e.type;
+				var callMethod = null;
+				switch (type) {
+					case 'mouseup':
+					case 'touchend':
+						callMethod = 'drawEnd';
+						break;
+				}
+				
+				// 추가 이벤트 정보 설정
+				$.extend(e, {
+					type: 'drawEvent-' + toolkit.type,
+					callMethod: callMethod,
+					eventType: type,
+					toolkitType: toolkit.type
+				});
+
+				//console.log(e.eventType, e.type, e.callMethod, e.timeStamp, e);
+				// PureCanvas Event 호출
+				try{
+					$drawCanvas.trigger(e);
+				}catch(ex){
+					console.warn('drawEvent-%s event error. [%s]', toolkit.type, ex);
+				}
+			});
 		},
 		
 		/**
 		 * Loading Bar 설정
 		 */
 		loadingBar: function(option, message){
+			if(!this.options.loadingBar.use) return;
+			
 			// Create & Show
 			if(!option || option === 'show'){
 				// loading bar 생성
@@ -279,10 +353,12 @@
 				// 내용 변경
 				this.loadingBarDiv.css({width: this.$element.width(), height: this.$element.height()});
 				var top = (this.$element.height() / 2) - messageBox.height();
-				messageBox.css({'margin-top': top}).html(message);
+				messageBox.css({'margin-top': top}).html(this.options.loadingBar.message);
 
-				// fade show
-				this.loadingBarDiv.fadeIn(300);
+				if(this.loadingBarDiv.css('display') == 'none'){
+					// fade show
+					this.loadingBarDiv.fadeIn(300);
+				}
 			}
 			// Hide
 			else if(option === 'hide'){
@@ -347,14 +423,48 @@
 		},
 		fillStyle: function(value){
 			if(typeof value == 'string') value = {color: value, opacity: 100};
-			// Use : BallPen, highlighter, StraightLine, Circle, Triangle, Rectangle
-			this.toolkit.contextStyle.call(this, 'fillStyle', this.pureCanvasToolkit.hexToRgba(value.color, value.opacity));
+			// Use : BallPen, highlighter, StraightLine, Circle, Triangle, Rectangle, Text
+			var v = this.pureCanvasToolkit.hexToRgba(value.color, value.opacity);
+			this.toolkit.contextStyle.call(this, 'fillStyle', v);
+			
+			var $editor = $('[data-pure-canvas-text]')
+			if($editor.length > 0){
+				$editor.css({color: v});
+			}
 		},
+		
+		fontSize: function(value){
+			// Use : Text
+			this.toolkit.contextFont.call(this, 'fontSize', value);
+		},
+		fontFamily: function(value){
+			// Use : Text
+			this.toolkit.contextFont.call(this, 'fontFamily', value);
+		},
+		fontTypeBold: function(value){
+			// Use : Text
+			this.toolkit.contextFont.call(this, 'fontTypeBold', value ? true : false);
+		},
+		fontTypeItalic: function(value){
+			// Use : Text
+			this.toolkit.contextFont.call(this, 'fontTypeItalic', value ? true : false);
+		},
+		fontTypeUnderline: function(value){
+			// Use : Text
+			this.toolkit.contextFont.call(this, 'fontTypeUnderline', value ? true : false);
+		},
+		
 		contextStyle: function(styleName, value){
 			var toolkit = this.options.toolkit;
 			
 			toolkit.style[styleName] = value;
-			console.debug('setting style [' + styleName + '] apply:' + toolkit.style[styleName] + ' , input:' + value);			
+			console.debug('setting style [' + styleName + '] apply:' + toolkit.style[styleName] + ' , input:' + value);
+		},
+		contextFont: function(styleName, value){
+			var toolkit = this.options.toolkit;
+			
+			toolkit.font[styleName] = value;
+			console.debug('setting font [' + styleName + '] apply:' + toolkit.font[styleName] + ' , input:' + value);
 		},
 		
 		draw: function(toolkitData){
@@ -428,7 +538,7 @@
 			var image = new Image();
 			
 			var sDate = new Date();
-			this.loadingBar.call(this, 'show', 'Loading...');
+			this.loadingBar.call(this, 'show');
 			image.onload = function(){
 				var imageWidth = image.width;
 				var imageHeight = image.height;
@@ -504,7 +614,7 @@
 			this.imageInfo.isSetting = true;
 			this.resize();
 			
-			console.debug('setting resizeType: ' + this.options.setting.resizeType, this.options.setting.rateVal);			
+			console.debug('setting resizeType: ' + this.options.setting.resizeType, this.options.setting.rateVal);
 		},
 		zoom: function(value){
 			this.options.setting.zoom = value;
@@ -557,7 +667,7 @@
 			// 가로, 세로 중 비율 정보가 작은 값 사용
 			var rateVal = (rateWidth > rateHeight) ? rateHeight : rateWidth;
 			// 비율이 100%가 넘는 경우 원본 크기로 표시 
-			if(rateVal > 1) rateVal = 1;
+			//if(rateVal > 1) rateVal = 1;
 			this.options.setting.rateVal = rateVal;
 
 			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
@@ -609,10 +719,12 @@
 				mainCtx.restore();
 				
 				// 이미지 표시
-				bgCtx.drawImage(imageInfo.image, 0, 0, width, height);
+				if(imageInfo.image){
+					bgCtx.drawImage(imageInfo.image, 0, 0, width, height);
+				}
 				
 				imageInfo.isSetting = false;
-			}				
+			}
 		}
 	});
 	
@@ -730,7 +842,9 @@
 		$(window).on('resize', function(){
 			$('[data-pure-canvas="element"]').each(function(index, element){
 				if($(element).pureCanvas('setting', 'windowResizeEvent')){
-					$(element).pureCanvas('resize');
+					setTimeout(function () {
+						$(element).pureCanvas('resize');
+					}, 100);
 				}
 			});
 		});
@@ -805,6 +919,25 @@
 					style: this.toolkit.style,
 					points: points ? (Object.prototype.toString.call(points) === "[object Array]") ? points.join(',') : points : null
 				}
+				
+				try{
+					this.$element.trigger({
+						type: 'complate.draw.pureCanvas',
+						drawData: data,
+					});
+				}catch(ex){
+					console.warn('complate.draw.pureCanvas event error. [%s]', ex);
+				}
+			},
+			sendDrawFontData: function(point, text){
+				var data = {
+					id: this.setting.id,
+					type: this.getType(),
+					font: this.toolkit.font,
+					point: point,
+					text: text
+				}
+				data.font.fillStyle = this.toolkit.style.fillStyle;
 				
 				try{
 					this.$element.trigger({
@@ -935,13 +1068,13 @@
 				if(!hex){
 					return null;
 				}
-			    hex = hex.replace("#","");
-			    var r = parseInt(hex.substring(0,2), 16);
-			    var g = parseInt(hex.substring(2,4), 16);
-			    var b = parseInt(hex.substring(4,6), 16);
+				hex = hex.replace("#","");
+				var r = parseInt(hex.substring(0,2), 16);
+				var g = parseInt(hex.substring(2,4), 16);
+				var b = parseInt(hex.substring(4,6), 16);
 
-			    if(!opacity) opacity = 100;
-			    return "rgba("+r+","+g+","+b+","+opacity/100+")";
+				if(!opacity) opacity = 100;
+				return "rgba("+r+","+g+","+b+","+opacity/100+")";
 			},
 
 			/*
@@ -999,7 +1132,7 @@
 					if(typeof data.clear == 'object'){
 						$.each(data.clear, function(index, element){
 							element.context.clearCanvas();
-						});						
+						});
 					}
 				}	
 				
@@ -1051,6 +1184,10 @@
 		
 		// 굵기, 색에 따라 그려질 정보를 출력한다.
 		drawForPrePoint: function(ctx, drawStyle, drawPoint){
+			if(drawPoint == undefined || drawPoint == null){
+				return;
+			}
+			
 			var style = $.extend({}, drawStyle);
 			if(!drawStyle.isNotChange){
 				style.fillStyle = style.strokeStyle;
@@ -1075,10 +1212,14 @@
 				ctx.strokeStyle = style.strokeStyle;
 				ctx.stroke();
 			}
-			ctx.restore();			
+			ctx.restore();
 		},
 		
 		drawForArc: function(ctx, style, drawPoints){
+			if(drawPoints == undefined || drawPoints == null){
+				return;
+			}
+			
 			var point0 = this.getPointSplit(drawPoints[0]);
 			var point1 = this.getPointSplit(drawPoints[1]);
 			
@@ -1108,6 +1249,10 @@
 			}
 		},
 		drawForLine: function(ctx, style, drawPoints){
+			if(drawPoints == undefined || drawPoints == null){
+				return;
+			}
+			
 			// drawForStraightLine
 			if(drawPoints.length <= 2){
 				ctx.beginPath();
@@ -1130,7 +1275,7 @@
 				ctx.lineCap = 'round';
 				ctx.lineJoin = 'round';
 				ctx.strokeStyle = style.strokeStyle;
-				ctx.stroke();					
+				ctx.stroke();
 				return;
 			}
 			
@@ -1162,6 +1307,10 @@
 			ctx.stroke();
 		},
 		drawForRect: function(ctx, style, drawPoints){
+			if(drawPoints == undefined || drawPoints == null){
+				return;
+			}
+			
 			var point1 = this.getPointSplit(drawPoints[0]);
 			var point2 = this.getPointSplit(drawPoints[1]);
 
@@ -1185,6 +1334,10 @@
 			}
 		},
 		drawForTriangle: function(ctx, style, drawPoints){
+			if(drawPoints == undefined || drawPoints == null){
+				return;
+			}
+			
 			var point0 = this.getPointSplit(drawPoints[0]);
 			var point1 = this.getPointSplit(drawPoints[1]);
 			
@@ -1207,7 +1360,45 @@
 				ctx.fillStyle = style.fillStyle;
 				ctx.fill();
 			}
-		}		
+		},
+		drawForText: function(ctx, style, drawPoint, text){
+			if(drawPoint == undefined || drawPoint == null){
+				return;
+			}
+			
+			var fontSize = style.fontSize * this.getRate();
+			
+			var fontStyle = [];
+			if(style.fontTypeBold) fontStyle.push('bold');
+			if(style.fontTypeItalic) fontStyle.push('italic');
+			fontStyle.push(style.fontSize+'px');
+			fontStyle.push(style.fontFamily);
+			
+			var linesNew = text.split('\n');
+			
+			var tp = 3; // 3 = textarea padding 보정값
+			var point = this.getPointSplit(drawPoint);
+			var left = point.x + tp; 
+			var top = point.y + tp;
+			var underlineOffset = 0;
+			
+			ctx.save();
+			ctx.beginPath();
+			for(var i=0,ii=linesNew.length; i<ii; i++){
+				ctx.textBaseline = 'top';
+				ctx.fillStyle = style.fillStyle;
+				ctx.font = fontStyle.join(' ')
+				ctx.fillText(linesNew[i], left, top);
+				
+				top += Number(style.fontSize);
+				
+				// TODO 언더바 처리
+			}
+			ctx.closePath();
+			ctx.restore();
+			
+			//$textCalc.remove();
+		}
 	});
 	
 	
@@ -1329,7 +1520,7 @@
 			this.viewCtx.globalCompositeOperation = "destination-out";
 			this.mainCtx.globalCompositeOperation = "destination-out";
 			
-			this.drawing(e);			
+			this.drawing(e);
 		},
 		drawing: function(e){
 			//console.log(this.getType() + ' drawing');
@@ -1339,7 +1530,7 @@
 			
 			if(this.isEraser){
 				this.points.push(e.point.org);
-				this.pointsRate.push(e.point.rate);				
+				this.pointsRate.push(e.point.rate);
 				
 				this.drawForLine(this.mainCtx, drawStyle, this.points);
 				this.drawForLine(this.viewCtx, drawTempStyle, this.pointsRate);
@@ -1399,7 +1590,7 @@
 			this.mainCanvasChange();
 		},	
 	}
-	$.pureCanvas.toolkit.addToolkit(Eraser);	
+	$.pureCanvas.toolkit.addToolkit(Eraser);
 	
 	/*******************************************************************************
 	 * ClearAll
@@ -1425,7 +1616,7 @@
 					canvas.context.clearCanvas();
 				}
 			});
-			this.mainCanvasChange();			
+			this.mainCanvasChange();
 		},
 		
 		draw: function(e){
@@ -1462,7 +1653,7 @@
 					this.pointsRate.push(e.point.rate);
 					
 					this.drawForLine(this.drawCtx, drawStyle, this.points);
-					this.drawForLine(this.drawTempCtx, drawTempStyle, this.pointsRate);					
+					this.drawForLine(this.drawTempCtx, drawTempStyle, this.pointsRate);
 				}
 			}
 			this.drawForPrePoint(this.drawCtx, drawStyle, e.point.org);
@@ -1817,7 +2008,7 @@
 			});
 		},	
 	}
-	$.pureCanvas.toolkit.addToolkit(Circle);		
+	$.pureCanvas.toolkit.addToolkit(Circle);
 	
 	/*******************************************************************************
 	 * Triangle - Stroke
@@ -1906,7 +2097,7 @@
 			});
 		},	
 	}
-	$.pureCanvas.toolkit.addToolkit(Triangle);			
+	$.pureCanvas.toolkit.addToolkit(Triangle);
 	
 	/*******************************************************************************
 	 * CheckPoint
@@ -1966,7 +2157,7 @@
 			lineJoin: 'bevel',
 			lineWidth: 2,
 			strokeStyle: 'black',
-			fillStyle: 'red',			
+			fillStyle: 'red',
 		},
 		drawForCheckPoint: function(ctx, drawPoints){
 			var point = this.getPointSplit(drawPoints[0]);
@@ -2004,7 +2195,7 @@
 			});
 		},	
 	}
-	$.pureCanvas.toolkit.addToolkit(CheckPoint);		
+	$.pureCanvas.toolkit.addToolkit(CheckPoint);
 	
 	/*******************************************************************************
 	 * HighlightPoint
@@ -2082,7 +2273,7 @@
 			
 			// add linear gradient
 			var grd = ctx.createLinearGradient(p.x - 20, p.y - 10, p.x, p.y + 10);
-			grd.addColorStop(0, this.defaultStyle.gradient0);   
+			grd.addColorStop(0, this.defaultStyle.gradient0);
 			grd.addColorStop(1, this.defaultStyle.gradient1);
 			
 			ctx.lineCap = this.defaultStyle.lineCap;
@@ -2109,7 +2300,7 @@
 			});
 		},	
 	}
-	$.pureCanvas.toolkit.addToolkit(HighlightPoint);		
+	$.pureCanvas.toolkit.addToolkit(HighlightPoint);
 	
 	/*******************************************************************************
 	 * MousePointer
@@ -2176,7 +2367,7 @@
 		drawOut: function(e){
 			//console.log(this.getType() + ' drawOut');
 			
-			this.pointerMap.me = null;				
+			this.pointerMap.me = null;
 			//this.drawForMousePointer();
 			this.startDraw();
 			
@@ -2263,10 +2454,10 @@
 					grd = ctx.createRadialGradient(point.x, point.y, 5, point.x, point.y, 15);
 				}
 				grd.addColorStop(0, style.strokeStyle);
-		      	grd.addColorStop(1, "rgba(255,255,255,0)");
-		      	ctx.fillStyle = grd;
-		      	ctx.fill();
-		      	
+				grd.addColorStop(1, "rgba(255,255,255,0)");
+				ctx.fillStyle = grd;
+				ctx.fill();
+				
 				ctx.closePath();
 				ctx.restore();	
 			});
@@ -2289,6 +2480,358 @@
 	}
 	$.pureCanvas.toolkit.addToolkit(MousePointer);
 	
+	/*******************************************************************************
+	 * Text
+	 *******************************************************************************/
+	var TextEditor = function(){
+		this.isEditing = false;
+		this.downPoint = null;
+		
+		this.$editorContainer = null;
+		this.$editor = null;
+	}
+	TextEditor.prototype = {
+		getType: function(){
+			return 'Text'; 
+		},
+		getCursor: function(){
+			return 'text';
+		},
+		viewEditor: function(){
+			var THIS = this;
+			var fontSize = this.toolkit.font.fontSize;
+			var fontSizeRate = fontSize * this.getRate();
+			
+			var colorInfo = {
+					selected: {borderColor: '#f88017', backgroundColor: '#e5e5e5'},
+					unselected: {borderColor: '#999999', backgroundColor: '#efefef'},
+			}
+			
+			var $main = this.$element.find('[data-pure-canvas-type="main"]');
+			
+			var $container = this.$element.find('[data-pure-canvas="container"]')
+			var mt = $container.css('margin-top')
+			var ml = $container.css('margin-left')
+			
+			this.$editorContainer = $('<div></div>');
+			this.$editorContainer.css({
+				position: 'absolute',
+				left: this.downPoint.x+'px',
+				top: this.downPoint.y+'px',
+				'margin-top': mt,
+				'margin-left': ml,
+			});
+			
+			var cw = $container.width() + Number(ml.replace('px', ''));
+			var ch = $container.height() + Number(mt.replace('px', ''));
+			
+			// 크기 넘어 가는 보정 값
+			var bw = cw - (this.downPoint.x + 210);
+			if(bw > 0){
+				bw = 0;
+			}
+			// $container 길이 + margin 길이   downPoint + 항목 길이
+			
+			/** Font 툴바 **/
+			this.$fontToolbar = $('<div></div>').css({
+				'background-color': 'rgba(239,239,239,1)',
+				border: '1px solid #9c9c9c', borderRadius: '5px',
+				
+				position: 'absolute',
+				left: (this.downPoint.x+bw)+'px',
+				top: (this.downPoint.y-40)+'px',
+				'margin-top': mt,
+				'margin-left': ml,
+				width: 'max-content',
+				
+				padding: '4px',
+			});
+			// 굵게
+			var $fontToolbar_bold = $('<div></div>').css({
+				width: '25px', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px', 
+				backgroundColor: (this.toolkit.font.fontTypeBold ? colorInfo.selected.backgroundColor : colorInfo.unselected.backgroundColor), 
+				border: '1px solid', borderRadius: '5px', borderColor: (this.toolkit.font.fontTypeBold ? colorInfo.selected.borderColor : colorInfo.unselected.borderColor),
+				fontWeight:'bold', lineHeight: '25px'
+			}).html('B').data('selected', this.toolkit.font.fontTypeBold);
+			this.$fontToolbar.append($fontToolbar_bold);
+			// 기울임
+			var $fontToolbar_italic = $('<div></div>').css({
+				width: '25px', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
+				backgroundColor: (this.toolkit.font.fontTypeItalic ? colorInfo.selected.backgroundColor : colorInfo.unselected.backgroundColor),
+				border: '1px solid', borderRadius: '5px', borderColor: (this.toolkit.font.fontTypeItalic ? colorInfo.selected.borderColor : colorInfo.unselected.borderColor),
+				fontStyle:'italic', fontFamily: 'Tahoma', lineHeight: '25px'
+			}).html('I').data('selected', this.toolkit.font.fontTypeItalic);
+			this.$fontToolbar.append($fontToolbar_italic);
+			// 크기
+			var select_size = [];
+			select_size.push('<select style="border: 0; outline: none; background-color: #efefef; height: 25px;">');
+			for(var i=8;i<=30;i++){
+				select_size.push('<option value="'+i+'" '+(this.toolkit.font.fontSize == i ? 'selected' : '')+'>'+i+'</option>');
+			}
+			select_size.push('</select>');
+			var $fontToolbar_size = $('<div></div>').css({
+				width: 'auto', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
+				backgroundColor: '#efefef', border: '1px solid', borderColor: '#999999', borderRadius: '5px',
+				overflow: 'hidden'
+			}).html(select_size.join(''));
+			this.$fontToolbar.append($fontToolbar_size);
+			// 글꼴
+			var select_fontFamily = [];
+			select_fontFamily.push('<select style="border: 0; outline: none; background-color: #efefef; height: 25px;">');
+			$.each(this.setting.supportFont, function(index, font){
+				select_fontFamily.push('<option value="'+font.fontFamily+'" '+(THIS.toolkit.font.fontFamily == font.fontFamily ? 'selected' : '')+'>'+font.name+'</option>');
+			});
+			select_fontFamily.push('</select>');
+			var $fontToolbar_fontFamily = $('<div></div>').css({
+				width: 'auto', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
+				backgroundColor: '#efefef', border: '1px solid', borderColor: '#999999', borderRadius: '5px',
+				overflow: 'hidden'
+			}).html(select_fontFamily.join(''));
+			this.$fontToolbar.append($fontToolbar_fontFamily);
+			
+			var bmw = this.$element.find('[data-pure-canvas-type="main"]').width() - (this.downPoint.x) - 6;
+			var bmh = this.$element.find('[data-pure-canvas-type="main"]').height() - (this.downPoint.y) - 6;
+			
+			this.$editor = $('<textarea data-pure-canvas-text></textarea>').css({
+				backgroundColor: 'rgba(100,100,100,0.5)',
+				border: '1px dotted #e3e3e3',
+				outline: 'none',
+				
+				position: 'absolute',
+				left: this.downPoint.x+'px',
+				top: this.downPoint.y+'px',
+				marginTop: mt,
+				marginLeft: ml,
+				
+				color: this.toolkit.style.fillStyle,
+				fontSize: fontSizeRate+'px',
+				lineHeight: fontSizeRate+'px',
+				fontFamily: this.toolkit.font.fontFamily,
+				
+				maxWidth: bmw+'px',
+				maxHeight: bmh+'px',
+			});
+			
+			if(this.toolkit.font.fontTypeBold) this.$editor.css('fontWeight', 'bold');
+			if(this.toolkit.font.fontTypeItalic) this.$editor.css('fontStyle', 'italic');
+			
+			// TODO FontToolbar 선택 시 이벤트 처리
+			$fontToolbar_bold.on('click', function(){
+				var $this = $(this);
+				var selected = $this.data('selected');
+				
+				if(selected){
+					$this.css(colorInfo.unselected);
+					
+					THIS.$editor.css('fontWeight', '')
+					THIS.toolkit.font.fontTypeBold = false;
+				}else{
+					$this.css(colorInfo.selected);
+					
+					THIS.$editor.css('fontWeight', 'bold')
+					THIS.toolkit.font.fontTypeBold = true;
+				}
+				$this.data('selected', !selected);
+			});
+			$fontToolbar_italic.on('click', function(){
+				var $this = $(this);
+				var selected = $this.data('selected');
+				
+				if(selected){
+					$this.css(colorInfo.unselected);
+					
+					THIS.$editor.css('fontStyle', '')
+					THIS.toolkit.font.fontTypeItalic = false;
+				}else{
+					$this.css(colorInfo.selected);
+					
+					THIS.$editor.css('fontStyle', 'italic')
+					THIS.toolkit.font.fontTypeItalic = true;
+				}
+				$this.data('selected', !selected);
+			});
+			$fontToolbar_size.find('select').on('change', function(){
+				var $this = $(this);
+				
+				var fontSize = Number($this.val());
+				fontSize = fontSize * THIS.getRate();
+				
+				THIS.$editor.css({fontSize: fontSize+'px', lineHeight: fontSize+'px'});
+				
+				THIS.toolkit.font.fontSize = Number($this.val());
+			});
+			$fontToolbar_fontFamily.find('select').on('change', function(){
+				var $this = $(this);
+				
+				THIS.$editor.css({fontFamily: $this.val()});
+				
+				THIS.toolkit.font.fontFamily = $this.val();
+			});
+			
+			$container.append(this.$fontToolbar).append(this.$editor);
+			this.$editor.focus();
+		},
+		drawStart: function(e){
+			console.log(this.getType() + ' drawEnd', e);
+			
+			if(!this.isEditing){
+				this.point = e.point;
+				this.downPoint = this.getPointSplit(e.point.org);
+				
+				this.viewEditor();
+				
+				this.isEditing = true;
+			}
+			else{
+				var text = this.$editor.val();
+				if(text != ''){
+//					var fontSize = this.toolkit.font.fontSize;
+//					//fontSize = fontSize * this.getRate();
+//					
+//					var fontStyle = [];
+//					if(this.toolkit.font.fontTypeBold) fontStyle.push('bold');
+//					if(this.toolkit.font.fontTypeItalic) fontStyle.push('italic');
+//					//if(this.toolkit.font.fontTypeUnderline) fontStyle.push('underline');
+//					fontStyle.push(fontSize+'px');
+//					fontStyle.push(this.toolkit.font.fontFamily);
+//					
+//					var lines = text.split('\n');
+//					var linesNew = [];
+//					var textInputWidth = this.$editor.width() - 2;
+//					
+//					var width = 0;
+//					var lastj = 0;
+//					
+//					this.$textCalc.css({
+//						fontWeight: (this.toolkit.font.fontTypeBold ? 'bold' : ''),
+//						fontStyle: (this.toolkit.font.fontTypeItalic ? 'italic' : ''),
+//						fontSize: fontSize+'px', lineHeight: fontSize+'px',
+//						fontFamily : this.toolkit.font.fontFamily
+//					});
+//					this.$textCalc.html('');
+//					
+//					for(var i=0, ii=lines.length; i<ii; i++){
+//						lastj = 0;
+//						
+//						for(var j=0, jj=lines[0].length; j<jj; j++){
+//							width = this.$textCalc.append(lines[i][j]).width();
+//							if(width > textInputWidth){
+//								linesNew.push(lines[i].substring(lastj,j));
+//								lastj = j;
+//								this.$textCalc.html(lines[i][j]);
+//							}
+//						}
+//						
+//						if(lastj != j) linesNew.push(lines[i].substring(lastj,j));
+//					}
+//					
+//					var $editor = $('[data-pure-canvas-text]');
+//					lines = $editor.val(linesNew.join('\n')).val().split('\n');
+//					
+//					var d = this.getPointSplit(this.point.rate);
+//					var left = d.x + 3;
+//					var top = d.y + 3;
+//					var underlineOffset = 0;
+//					
+//					var ctx = this.drawTempCtx;
+//					
+//					ctx.save();
+//					ctx.beginPath();
+//					for(var i=0,ii=lines.length; i<ii; i++){
+//						ctx.textBaseline = 'top';
+//						ctx.fillStyle = this.toolkit.style.fillStyle;
+//						ctx.font = fontStyle.join(' ')
+//						ctx.fillText(lines[i], left, top);
+//						
+//						top += Number(fontSize);
+//						
+//						// TODO 언더바 처리
+//					}
+//					ctx.closePath();
+//					ctx.restore();
+					
+					var style = this.toolkit.font;
+					style.fillStyle = this.toolkit.style.fillStyle;
+					
+					var fontSize = style.fontSize * this.getRate();
+					
+					var $container = this.$element.find('[data-pure-canvas="container"]')
+					var $textCalc = $('<div></div>').css({display: 'none'});
+					$textCalc.css({
+						fontWeight: (style.fontTypeBold ? 'bold' : ''),
+						fontStyle: (style.fontTypeItalic ? 'italic' : ''),
+						fontSize: fontSize+'px', lineHeight: fontSize+'px',
+						fontFamily : style.fontFamily
+					});
+					$container.append($textCalc);
+					
+					var lines = text.split('\n');
+					var linesNew = [];
+					var textInputWidth = $('[data-pure-canvas-text]').width() - 2;
+					
+					var width = 0;
+					var lastj = 0;
+					
+					//console.log('textInputWidth', textInputWidth);
+					//console.log('lines', lines.length);
+					
+					for(var i=0, ii=lines.length; i<ii; i++){
+						$textCalc.html('');
+						lastj = 0;
+						
+						for(var j=0, jj=lines[0].length; j<jj; j++){
+							width = $textCalc.append(lines[i][j]).width();
+							//console.log(width, $textCalc.html(), $textCalc.width());
+							
+							if(width > textInputWidth){
+								linesNew.push(lines[i].substring(lastj,j));
+								lastj = j;
+								$textCalc.html(lines[i][j]);
+							}
+						}
+						
+						if(lastj != j) linesNew.push(lines[i].substring(lastj,j));
+					}
+					
+					
+					var text = linesNew.join('\n')
+					
+					this.drawForText(this.drawTempCtx, style, this.point.rate, text);
+					
+					$textCalc.remove();
+					
+					this.complateDraw({
+						copyFrom: this.canvasInfo.drawTemp,
+						copyTo: this.canvasInfo.view,
+						clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
+					});
+					
+					this.sendDrawFontData(this.point.rate, text);
+				}
+				this.isEditing = false;
+				this.$fontToolbar.remove();
+				this.$fontToolbar = null;
+				this.$editor.remove();
+				this.$editor = null;
+			}
+		},
+		
+		draw: function(e){
+			//console.log(this.getType() + ' draw');
+			
+			var toolkitData = e.toolkitData;
+			
+			this.drawForText(this.recvDrawCtx, toolkitData.font, toolkitData.point, toolkitData.text);
+			
+			this.complateDraw({
+				copyFrom: this.canvasInfo.recvDraw,
+				copyTo: this.canvasInfo.view,
+				clear: [this.canvasInfo.recvDraw]
+			});
+		}
+	}
+	
+	$.pureCanvas.toolkit.addToolkit(TextEditor);
 	/************************************************************************************/
 	/** add native function **/
 	

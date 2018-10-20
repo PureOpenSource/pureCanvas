@@ -1,5 +1,5 @@
 $(document).ready(function(){
-	PureWebSocket.connect();
+	//PureWebSocket.connect();
 	
 	$("#pureCanvas").pureCanvas({
 	});
@@ -13,10 +13,17 @@ $(document).ready(function(){
 		}
 	});*/
 	
+	$('#backgroundImage').click();
+	$('#page').click();
+	$('#TextEditor').click();
+	
 	$("#pureCanvas").on('complate.draw.pureCanvas', function(e){
 		var data = e.drawData;
 		var timeStamp = e.timeStamp;
 		data.eventType = 'draw';
+		
+		console.log(data);
+		console.log(JSON.stringify(data));
 		
 		PureWebSocket.send(data);
 	});
@@ -110,7 +117,12 @@ $(document).ready(function(){
 			}
 		}
 		else{
-			value = $this.val();
+			if($this.attr('type') == 'checkbox'){
+				value = $this.is(':checked');
+			}
+			else{
+				value = $this.val();
+			}
 		}
 		
 		$("#pureCanvas").pureCanvas(optionName, optionType, value);
@@ -129,6 +141,7 @@ $(document).ready(function(){
 	//r();
 });
 
+var s = '{"id":"b2615dd7-41bd-fec2-2d45-b5f98936f7b0","type":"TextEditor","font":{"fontSize":14,"fontFamily":"Gulim","fontTypeBold":false,"fontTypeItalic":false,"fontTypeUnderline":false,"fillStyle":"rgba(0,0,0,100)"},"point":"424 415","text":"일너게 문자다","eventType":"draw"}';
 
 var PureWebSocket = {
 	url: 'ws://172.16.34.77:9090/testerweb/ws/default',
