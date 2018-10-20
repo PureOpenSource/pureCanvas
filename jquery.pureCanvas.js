@@ -91,7 +91,7 @@
 			// 마우스포인터 전송 지연 시간(ms)
 			delayMousePoint: 3,
 			
-			// MainCanver width Style
+			// MainCanvas width Style
 			mainStyle: {
 				width: 'inherit'
 			},
@@ -123,15 +123,15 @@
 			},
 			font: {
 				// 글자 크기
-				fontSize: 14,
+				size: 14,
 				// 글꼴
-				fontFamily: 'Gulim',
+				family: 'Gulim',
 				// 굵게
-				fontTypeBold: false,
+				bold: false,
 				// 기울림
-				fontTypeItalic: false,
+				italic: false,
 				// 밑줄
-				fontTypeUnderline: false,
+				underline: false,
 			}
 		},
 	}
@@ -408,23 +408,23 @@
 		
 		fontSize: function(value){
 			// Use : Text
-			this.toolkit.contextFont.call(this, 'fontSize', value);
+			this.toolkit.contextFont.call(this, 'size', value);
 		},
 		fontFamily: function(value){
 			// Use : Text
-			this.toolkit.contextFont.call(this, 'fontFamily', value);
+			this.toolkit.contextFont.call(this, 'family', value);
 		},
-		fontTypeBold: function(value){
+		fontBold: function(value){
 			// Use : Text
-			this.toolkit.contextFont.call(this, 'fontTypeBold', value ? true : false);
+			this.toolkit.contextFont.call(this, 'bold', value ? true : false);
 		},
-		fontTypeItalic: function(value){
+		fontItalic: function(value){
 			// Use : Text
-			this.toolkit.contextFont.call(this, 'fontTypeItalic', value ? true : false);
+			this.toolkit.contextFont.call(this, 'italic', value ? true : false);
 		},
-		fontTypeUnderline: function(value){
+		fontUnderline: function(value){
 			// Use : Text
-			this.toolkit.contextFont.call(this, 'fontTypeUnderline', value ? true : false);
+			this.toolkit.contextFont.call(this, 'underline', value ? true : false);
 		},
 		
 		contextStyle: function(styleName, value){
@@ -1219,31 +1219,6 @@
 				ctx.fill();
 			}
 		},
-			ddstart: function(ctx, style, drawPoints){
-				if(drawPoints == undefined || drawPoints == null){
-					return;
-				}
-				
-				ctx.lineCap = 'round';
-				ctx.lineJoin = 'round';
-				ctx.strokeStyle = style.strokeStyle;
-				ctx.lineWidth = style.lineWidth;
-				
-				ctx.beginPath();
-				var point0 = this.getPointSplit(drawPoints[0]);
-				ctx.arc(point0.x, point0.y, style.lineWidth/2, 0, Math.PI*2, true);
-				ctx.closePath();
-				ctx.fill();
-			},
-			ddmove: function(ctx, style, drawPoints){
-				var pointi = this.getPointSplit(drawPoints[0]);
-				
-				ctx.lineTo(pointi.x, pointi.y);
-				ctx.stroke();
-			},
-			ddend: function(ctx){
-				ctx.closePath();
-			},
 		drawForLine: function(ctx, style, drawPoints){
 			if(drawPoints == undefined || drawPoints == null){
 				return;
@@ -1363,13 +1338,13 @@
 				return;
 			}
 			
-			var fontSize = style.fontSize * this.getRate();
+			var fontSize = style.size * this.getRate();
 			
 			var fontStyle = [];
-			if(style.fontTypeBold) fontStyle.push('bold');
-			if(style.fontTypeItalic) fontStyle.push('italic');
-			fontStyle.push(style.fontSize+'px');
-			fontStyle.push(style.fontFamily);
+			if(style.bold) fontStyle.push('bold');
+			if(style.italic) fontStyle.push('italic');
+			fontStyle.push(style.size+'px');
+			fontStyle.push(style.family);
 			
 			var linesNew = text.split('\n');
 			
@@ -1393,8 +1368,6 @@
 			}
 			ctx.closePath();
 			ctx.restore();
-			
-			//$textCalc.remove();
 		}
 	});
 	
@@ -2486,6 +2459,11 @@
 		
 		this.$editorContainer = null;
 		this.$editor = null;
+		
+		this.colorInfo = {
+				selected: {borderColor: '#f88017', backgroundColor: '#e5e5e5'},
+				unselected: {borderColor: '#999999', backgroundColor: '#efefef'},
+		}
 	}
 	TextEditor.prototype = {
 		getType: function(){
@@ -2494,15 +2472,35 @@
 		getCursor: function(){
 			return 'text';
 		},
+		/**
+		 * 클릭하는 툴바 생성
+		 */
+		_makeClickToolbar: function(text, isSelected){
+			return $('<div></div>').css({
+				width: '25px', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px', 
+				backgroundColor: (isSelected ? this.colorInfo.selected.backgroundColor : this.colorInfo.unselected.backgroundColor), 
+				border: '1px solid', borderRadius: '5px', borderColor: (isSelected ? this.colorInfo.selected.borderColor : this.colorInfo.unselected.borderColor),
+				lineHeight: '25px'
+			}).html(text).data('selected', isSelected);
+		},
+		_makeSelectToolbar: function(selectInfo, setValue){
+			var select = [];
+			select.push('<select style="border: 0; outline: none; background-color: #efefef; height: 25px;">');
+			$.each(selectInfo, function(index, si){
+				select.push('<option value="'+si.value+'" '+(si.value == setValue ? 'selected' : '')+'>'+si.name+'</option>');
+			});
+			select.push('</select>');
+			
+			return $('<div></div>').css({
+				width: 'auto', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
+				backgroundColor: '#efefef', border: '1px solid', borderColor: '#999999', borderRadius: '5px',
+				overflow: 'hidden'
+			}).html(select.join(''));
+		},
 		viewEditor: function(){
 			var THIS = this;
-			var fontSize = this.toolkit.font.fontSize;
+			var fontSize = this.toolkit.font.size;
 			var fontSizeRate = fontSize * this.getRate();
-			
-			var colorInfo = {
-					selected: {borderColor: '#f88017', backgroundColor: '#e5e5e5'},
-					unselected: {borderColor: '#999999', backgroundColor: '#efefef'},
-			}
 			
 			var $main = this.$element.find('[data-pure-canvas-type="main"]');
 			
@@ -2515,8 +2513,8 @@
 				position: 'absolute',
 				left: this.downPoint.x+'px',
 				top: this.downPoint.y+'px',
-				'margin-top': mt,
-				'margin-left': ml,
+				marginTop: mt,
+				marginLeft: ml,
 			});
 			
 			var cw = $container.width() + Number(ml.replace('px', ''));
@@ -2531,63 +2529,42 @@
 			
 			/** Font 툴바 **/
 			this.$fontToolbar = $('<div></div>').css({
-				'background-color': 'rgba(239,239,239,1)',
+				backgroundColor: 'rgba(239,239,239,1)',
 				border: '1px solid #9c9c9c', borderRadius: '5px',
 				
 				position: 'absolute',
-				left: (this.downPoint.x+bw)+'px',
-				top: (this.downPoint.y-40)+'px',
-				'margin-top': mt,
-				'margin-left': ml,
+				left: (this.downPoint.x+bw)+'px', top: (this.downPoint.y-40)+'px',
+				marginTop: mt, marginLeft: ml,
 				width: 'max-content',
 				
 				padding: '4px',
 			});
 			// 굵게
-			var $fontToolbar_bold = $('<div></div>').css({
-				width: '25px', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px', 
-				backgroundColor: (this.toolkit.font.fontTypeBold ? colorInfo.selected.backgroundColor : colorInfo.unselected.backgroundColor), 
-				border: '1px solid', borderRadius: '5px', borderColor: (this.toolkit.font.fontTypeBold ? colorInfo.selected.borderColor : colorInfo.unselected.borderColor),
-				fontWeight:'bold', lineHeight: '25px'
-			}).html('B').data('selected', this.toolkit.font.fontTypeBold);
+			var $fontToolbar_bold = this._makeClickToolbar('B', this.toolkit.font.bold).css({fontWeight:'bold'}); 
 			this.$fontToolbar.append($fontToolbar_bold);
+			
 			// 기울임
-			var $fontToolbar_italic = $('<div></div>').css({
-				width: '25px', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
-				backgroundColor: (this.toolkit.font.fontTypeItalic ? colorInfo.selected.backgroundColor : colorInfo.unselected.backgroundColor),
-				border: '1px solid', borderRadius: '5px', borderColor: (this.toolkit.font.fontTypeItalic ? colorInfo.selected.borderColor : colorInfo.unselected.borderColor),
-				fontStyle:'italic', fontFamily: 'Tahoma', lineHeight: '25px'
-			}).html('I').data('selected', this.toolkit.font.fontTypeItalic);
+			var $fontToolbar_italic = this._makeClickToolbar('I', this.toolkit.font.italic).css({fontStyle:'italic', fontFamily: 'Tahoma'});
 			this.$fontToolbar.append($fontToolbar_italic);
+			
 			// 크기
 			var select_size = [];
-			select_size.push('<select style="border: 0; outline: none; background-color: #efefef; height: 25px;">');
 			for(var i=8;i<=30;i++){
-				select_size.push('<option value="'+i+'" '+(this.toolkit.font.fontSize == i ? 'selected' : '')+'>'+i+'</option>');
+				select_size.push({value: i, name: i});
 			}
-			select_size.push('</select>');
-			var $fontToolbar_size = $('<div></div>').css({
-				width: 'auto', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
-				backgroundColor: '#efefef', border: '1px solid', borderColor: '#999999', borderRadius: '5px',
-				overflow: 'hidden'
-			}).html(select_size.join(''));
+			var $fontToolbar_size = this._makeSelectToolbar(select_size, this.toolkit.font.size);
 			this.$fontToolbar.append($fontToolbar_size);
+			
 			// 글꼴
 			var select_fontFamily = [];
-			select_fontFamily.push('<select style="border: 0; outline: none; background-color: #efefef; height: 25px;">');
 			$.each(this.setting.supportFont, function(index, font){
-				select_fontFamily.push('<option value="'+font.fontFamily+'" '+(THIS.toolkit.font.fontFamily == font.fontFamily ? 'selected' : '')+'>'+font.name+'</option>');
+				select_fontFamily.push({value: font.fontFamily, name: font.name});
 			});
-			select_fontFamily.push('</select>');
-			var $fontToolbar_fontFamily = $('<div></div>').css({
-				width: 'auto', height: '25px', textAlign: 'center', cursor: 'pointer', float: 'left', margin: '0 2px',
-				backgroundColor: '#efefef', border: '1px solid', borderColor: '#999999', borderRadius: '5px',
-				overflow: 'hidden'
-			}).html(select_fontFamily.join(''));
+			var $fontToolbar_fontFamily = this._makeSelectToolbar(select_fontFamily, this.toolkit.font.family);
 			this.$fontToolbar.append($fontToolbar_fontFamily);
 			
-			var bmw = this.$element.find('[data-pure-canvas-type="main"]').width() - (this.downPoint.x) - 6;
-			var bmh = this.$element.find('[data-pure-canvas-type="main"]').height() - (this.downPoint.y) - 6;
+			var bmw = $main.width() - (this.downPoint.x) - 6;
+			var bmh = $main.height() - (this.downPoint.y) - 6;
 			
 			this.$editor = $('<textarea data-pure-canvas-text></textarea>').css({
 				backgroundColor: 'rgba(100,100,100,0.5)',
@@ -2595,74 +2572,49 @@
 				outline: 'none',
 				
 				position: 'absolute',
-				left: this.downPoint.x+'px',
-				top: this.downPoint.y+'px',
-				marginTop: mt,
-				marginLeft: ml,
+				left: this.downPoint.x+'px', top: this.downPoint.y+'px',
+				marginTop: mt, marginLeft: ml,
 				
 				color: this.toolkit.style.fillStyle,
-				fontSize: fontSizeRate+'px',
-				lineHeight: fontSizeRate+'px',
-				fontFamily: this.toolkit.font.fontFamily,
+				fontSize: fontSizeRate+'px', lineHeight: fontSizeRate+'px',
+				fontFamily: this.toolkit.font.family,
 				
-				maxWidth: bmw+'px',
-				maxHeight: bmh+'px',
+				maxWidth: bmw+'px', maxHeight: bmh+'px',
 			});
 			
-			if(this.toolkit.font.fontTypeBold) this.$editor.css('fontWeight', 'bold');
-			if(this.toolkit.font.fontTypeItalic) this.$editor.css('fontStyle', 'italic');
+			if(this.toolkit.font.bold) this.$editor.css('fontWeight', 'bold');
+			if(this.toolkit.font.italic) this.$editor.css('fontStyle', 'italic');
 			
-			// TODO FontToolbar 선택 시 이벤트 처리
 			$fontToolbar_bold.on('click', function(){
 				var $this = $(this);
 				var selected = $this.data('selected');
 				
-				if(selected){
-					$this.css(colorInfo.unselected);
-					
-					THIS.$editor.css('fontWeight', '')
-					THIS.toolkit.font.fontTypeBold = false;
-				}else{
-					$this.css(colorInfo.selected);
-					
-					THIS.$editor.css('fontWeight', 'bold')
-					THIS.toolkit.font.fontTypeBold = true;
-				}
+				$this.css(selected ? THIS.colorInfo.unselected : THIS.colorInfo.selected);
+				THIS.$editor.css('fontWeight', selected ? '' : 'bold')
+				THIS.toolkit.font.bold = !selected;
 				$this.data('selected', !selected);
 			});
 			$fontToolbar_italic.on('click', function(){
 				var $this = $(this);
 				var selected = $this.data('selected');
 				
-				if(selected){
-					$this.css(colorInfo.unselected);
-					
-					THIS.$editor.css('fontStyle', '')
-					THIS.toolkit.font.fontTypeItalic = false;
-				}else{
-					$this.css(colorInfo.selected);
-					
-					THIS.$editor.css('fontStyle', 'italic')
-					THIS.toolkit.font.fontTypeItalic = true;
-				}
+				$this.css(selected ? THIS.colorInfo.unselected : THIS.colorInfo.selected);
+				THIS.$editor.css('fontStyle', selected ? '' : 'italic')
+				THIS.toolkit.font.italic = !selected;
 				$this.data('selected', !selected);
 			});
 			$fontToolbar_size.find('select').on('change', function(){
 				var $this = $(this);
-				
-				var fontSize = Number($this.val());
-				fontSize = fontSize * THIS.getRate();
+				var fontSize = Number($this.val()) * THIS.getRate();
 				
 				THIS.$editor.css({fontSize: fontSize+'px', lineHeight: fontSize+'px'});
-				
-				THIS.toolkit.font.fontSize = Number($this.val());
+				THIS.toolkit.font.size = Number($this.val());
 			});
 			$fontToolbar_fontFamily.find('select').on('change', function(){
 				var $this = $(this);
 				
 				THIS.$editor.css({fontFamily: $this.val()});
-				
-				THIS.toolkit.font.fontFamily = $this.val();
+				THIS.toolkit.font.family = $this.val();
 			});
 			
 			$container.append(this.$fontToolbar).append(this.$editor);
@@ -2684,83 +2636,18 @@
 			else{
 				var text = this.$editor.val();
 				if(text != ''){
-//					var fontSize = this.toolkit.font.fontSize;
-//					//fontSize = fontSize * this.getRate();
-//					
-//					var fontStyle = [];
-//					if(this.toolkit.font.fontTypeBold) fontStyle.push('bold');
-//					if(this.toolkit.font.fontTypeItalic) fontStyle.push('italic');
-//					//if(this.toolkit.font.fontTypeUnderline) fontStyle.push('underline');
-//					fontStyle.push(fontSize+'px');
-//					fontStyle.push(this.toolkit.font.fontFamily);
-//					
-//					var lines = text.split('\n');
-//					var linesNew = [];
-//					var textInputWidth = this.$editor.width() - 2;
-//					
-//					var width = 0;
-//					var lastj = 0;
-//					
-//					this.$textCalc.css({
-//						fontWeight: (this.toolkit.font.fontTypeBold ? 'bold' : ''),
-//						fontStyle: (this.toolkit.font.fontTypeItalic ? 'italic' : ''),
-//						fontSize: fontSize+'px', lineHeight: fontSize+'px',
-//						fontFamily : this.toolkit.font.fontFamily
-//					});
-//					this.$textCalc.html('');
-//					
-//					for(var i=0, ii=lines.length; i<ii; i++){
-//						lastj = 0;
-//						
-//						for(var j=0, jj=lines[0].length; j<jj; j++){
-//							width = this.$textCalc.append(lines[i][j]).width();
-//							if(width > textInputWidth){
-//								linesNew.push(lines[i].substring(lastj,j));
-//								lastj = j;
-//								this.$textCalc.html(lines[i][j]);
-//							}
-//						}
-//						
-//						if(lastj != j) linesNew.push(lines[i].substring(lastj,j));
-//					}
-//					
-//					var $editor = $('[data-pure-canvas-text]');
-//					lines = $editor.val(linesNew.join('\n')).val().split('\n');
-//					
-//					var d = this.getPointSplit(this.point.rate);
-//					var left = d.x + 3;
-//					var top = d.y + 3;
-//					var underlineOffset = 0;
-//					
-//					var ctx = this.drawTempCtx;
-//					
-//					ctx.save();
-//					ctx.beginPath();
-//					for(var i=0,ii=lines.length; i<ii; i++){
-//						ctx.textBaseline = 'top';
-//						ctx.fillStyle = this.toolkit.style.fillStyle;
-//						ctx.font = fontStyle.join(' ')
-//						ctx.fillText(lines[i], left, top);
-//						
-//						top += Number(fontSize);
-//						
-//						// TODO 언더바 처리
-//					}
-//					ctx.closePath();
-//					ctx.restore();
-					
 					var style = this.toolkit.font;
 					style.fillStyle = this.toolkit.style.fillStyle;
 					
-					var fontSize = style.fontSize * this.getRate();
+					var fontSize = style.size * this.getRate();
 					
 					var $container = this.$element.find('[data-pure-canvas="container"]')
 					var $textCalc = $('<div></div>').css({display: 'none'});
 					$textCalc.css({
-						fontWeight: (style.fontTypeBold ? 'bold' : ''),
-						fontStyle: (style.fontTypeItalic ? 'italic' : ''),
+						fontWeight: (style.bold ? 'bold' : ''),
+						fontStyle: (style.italic ? 'italic' : ''),
 						fontSize: fontSize+'px', lineHeight: fontSize+'px',
-						fontFamily : style.fontFamily
+						fontFamily : style.family
 					});
 					$container.append($textCalc);
 					
@@ -2813,6 +2700,9 @@
 				this.$editor.remove();
 				this.$editor = null;
 			}
+		},
+		drawEnd: function(e){
+			//this.drawStart(e);
 		},
 		
 		draw: function(e){

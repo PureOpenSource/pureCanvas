@@ -35,6 +35,7 @@ Triangle|삼각형
 CheckPoint|체크포인트
 HighlightPoint|중요 포인트 (하나만 Draw 가능)
 MousePointer|마우스포인터
+Text|문자 입력
 
 ## Options
 PureCanvas를 생성 시 전달할 수 있다.
@@ -50,6 +51,9 @@ delayMousePoint|integer|5|마우스 포인트 전송 지연 시간(ms)
 resizeType|string|page|Canvavs 크기 설정, page: 쪽맞춤, rate: 비율
 rateVal|integer|1|화면 비율, 1 = 100%
 zoom|integer|1|화면 확대 비율, 1 = 100%, rateVal와 합쳐서 비율 조정
+supportFont|object||문자 입력 Toolkit에서 지원 폰트 목록 ex) {name:'굴림', fontFamily:'Gulim'}
+delayMousePoint|integer|3|마우스포인터 전송 지연 시간(ms)
+mainStyle.width|string|inherit|MainCanvas width Style
 containerStyle|object||Container Element의 CSS
 pointFixed|integer|1|point 정보 소수점 자리수
 windowResizeEvent|boolean|true|windows resize event 실행 여부
@@ -67,9 +71,15 @@ $("#pureCanvas").pureCanvas({
 옵션명|유형|기본값|설명
 ----|----|----|----|
 type|string|Cursor|Toolkit 타입
+style.lineCap|string|round|Line Cap Style (butt|round|square)
+style.lineJoin|string|round|line Join Style  (bevel|round|miter)
 style.strokeStyle|string|rgba(0,0,0,100)|색상
 style.fillStyle|string|rgba(0,0,0,100)|색상
 style.lineWidth|string|5|선 크기
+font.size|integer|14|폰트 크기
+font.family|string|Gulim|룰림
+font.bold|boolean|false|굵게
+font.italic|boolean|false|기울림
 
 ```javascript
 $("#pureCanvas").pureCanvas({
