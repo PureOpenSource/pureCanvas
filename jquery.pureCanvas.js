@@ -233,15 +233,23 @@
 			var toolkit = this.options.toolkit;
 			var $drawCanvas = this.canvasInfo.draw.$canvas;
 			
-			$drawCanvas.on('mousedown mousemove mouseup mouseover mouseout touchstart touchmove touchend', function(e){
+			var ef = function(e){
+				// Canvas의 위치 조정
+				var $e = jQuery.extend(true, {}, e);
+				var canvas_offset = THIS.$container.find('canvas[data-pure-canvas-type="draw"]').offset();
+				
+				// FIXME 터치 이벤트
+				$e.pageX = Math.floor($e.pageX - canvas_offset.left);
+				$e.pageY = Math.floor($e.pageY - canvas_offset.top);
+				
 				// 그리기 권한이 없는 경우 이벤트를 수행하지 않음.
 				if(!setting.authForDraw){
 					return;
 				}
 				// Touch Event인 경우 처리
-				if(e.type.indexOf('touch') >= 0){
-					e.preventDefault();
-					e.isTouch = true;
+				if($e.type.indexOf('touch') >= 0){
+					$e.preventDefault();
+					$e.isTouch = true;
 				}
 				
 				// 이벤트 분류
@@ -253,7 +261,7 @@
 						callMethod = 'drawStart';
 						
 						// Touch가 아닌 경우(Mouse 인 경우) 왼쪽 클릭 만 허용함.
-						if(!e.isTouch && e.button !== 0){
+						if(!$e.isTouch && $e.button !== 0){
 							return;
 						}
 						break;
@@ -272,7 +280,7 @@
 				}
 				
 				// 추가 이벤트 정보 설정
-				$.extend(e, {
+				$.extend($e, {
 					type: 'drawEvent-' + toolkit.type,
 					callMethod: callMethod,
 					eventType: type,
@@ -282,49 +290,14 @@
 				//console.log(e.eventType, e.type, e.callMethod, e.timeStamp, e);
 				// PureCanvas Event 호출
 				try{
-					$drawCanvas.trigger(e);
+					$drawCanvas.trigger($e);
 				}catch(ex){
 					console.warn('drawEvent-%s event error. [%s]', toolkit.type, ex);
 				}
-			});
+			}
 			
-			$('body').on('mouseup touchend', function(e){
-				// 그리기 권한이 없는 경우 이벤트를 수행하지 않음.
-				if(!setting.authForDraw){
-					return;
-				}
-				// Touch Event인 경우 처리
-				if(e.type.indexOf('touch') >= 0){
-					e.preventDefault();
-					e.isTouch = true;
-				}
-				
-				// 이벤트 분류
-				var type = e.type;
-				var callMethod = null;
-				switch (type) {
-					case 'mouseup':
-					case 'touchend':
-						callMethod = 'drawEnd';
-						break;
-				}
-				
-				// 추가 이벤트 정보 설정
-				$.extend(e, {
-					type: 'drawEvent-' + toolkit.type,
-					callMethod: callMethod,
-					eventType: type,
-					toolkitType: toolkit.type
-				});
-
-				//console.log(e.eventType, e.type, e.callMethod, e.timeStamp, e);
-				// PureCanvas Event 호출
-				try{
-					$drawCanvas.trigger(e);
-				}catch(ex){
-					console.warn('drawEvent-%s event error. [%s]', toolkit.type, ex);
-				}
-			});
+			$drawCanvas.on('mousedown mouseup mouseover mouseout touchstart touchend', ef);
+			$(document).bind('mousemove mouseup touchmove touchend', ef);
 		},
 		
 		/**
@@ -998,11 +971,11 @@
 			
 			getPoint: function(e){
 				var x, y;
+				
 				// Mouse Event일 경우
 				if(e.eventType.indexOf("mouse") >= 0){
-					//console.log(e.type, e.offsetX || e.pageX - $(e.target).offset().left, e.offsetY || e.pageY - $(e.target).offset().top);
-					x = typeof e.offsetX !== 'undefined' ? e.offsetX : e.pageX - $(e.target).offset().left;
-					y = typeof e.offsetY !== 'undefined' ? e.offsetY : e.pageY - $(e.target).offset().top;
+					x = e.pageX
+					y = e.pageY
 				}
 				// Touch Event일 경우
 				else{
@@ -1023,8 +996,6 @@
 				// 비율에 따른 좌표 계산
 				var rx = Math.round(x / this.getRate(), this.setting.pointFixed);
 				var ry = Math.round(y / this.getRate(), this.setting.pointFixed);
-				//var rx = (x / rateVal).toFixed(this.setting.pointFixed);
-				//var ry = (y / rateVal).toFixed(this.setting.pointFixed);
 				
 				return {org: x+" "+y, rate: rx+" "+ry}
 			},
@@ -1238,7 +1209,7 @@
 			ctx.arc(point0.x, point0.y, radius, 2 * Math.PI, false);
 			ctx.lineWidth = style.lineWidth;
 			ctx.lineCap = 'round';
-			ctx.lineJoin = 'round';			
+			ctx.lineJoin = 'round';
 			if(style.isStroke){
 				ctx.strokeStyle = style.strokeStyle;
 				ctx.stroke();
@@ -1248,6 +1219,31 @@
 				ctx.fill();
 			}
 		},
+			ddstart: function(ctx, style, drawPoints){
+				if(drawPoints == undefined || drawPoints == null){
+					return;
+				}
+				
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				ctx.strokeStyle = style.strokeStyle;
+				ctx.lineWidth = style.lineWidth;
+				
+				ctx.beginPath();
+				var point0 = this.getPointSplit(drawPoints[0]);
+				ctx.arc(point0.x, point0.y, style.lineWidth/2, 0, Math.PI*2, true);
+				ctx.closePath();
+				ctx.fill();
+			},
+			ddmove: function(ctx, style, drawPoints){
+				var pointi = this.getPointSplit(drawPoints[0]);
+				
+				ctx.lineTo(pointi.x, pointi.y);
+				ctx.stroke();
+			},
+			ddend: function(ctx){
+				ctx.closePath();
+			},
 		drawForLine: function(ctx, style, drawPoints){
 			if(drawPoints == undefined || drawPoints == null){
 				return;
@@ -1292,6 +1288,7 @@
 			var pointi, pointi1;
 			
 			ctx.moveTo(point0.x, point0.y);
+			
 			for(var i=1; i<drawPoints.length-2; i++) {
 				pointi = this.getPointSplit(drawPoints[i]);
 				pointi1 = this.getPointSplit(drawPoints[i+1]);
@@ -2669,7 +2666,9 @@
 			});
 			
 			$container.append(this.$fontToolbar).append(this.$editor);
-			this.$editor.focus();
+			setTimeout(function(){
+				THIS.$editor.focus();
+			}, 100);
 		},
 		drawStart: function(e){
 			console.log(this.getType() + ' drawEnd', e);
