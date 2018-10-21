@@ -1362,7 +1362,7 @@
 				ctx.font = fontStyle.join(' ')
 				ctx.fillText(linesNew[i], left, top);
 				
-				top += Number(style.fontSize);
+				top += Number(style.size);
 				
 				// TODO 언더바 처리
 			}
@@ -2680,9 +2680,7 @@
 					}
 					
 					
-					var text = linesNew.join('\n')
-					
-					this.drawForText(this.drawTempCtx, style, this.point.rate, text);
+					this.drawForText(this.drawTempCtx, style, this.point.rate, linesNew.join('\n'));
 					
 					$textCalc.remove();
 					
