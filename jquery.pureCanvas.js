@@ -298,6 +298,34 @@
 			
 			$drawCanvas.on('mousedown mouseup mouseover mouseout touchstart touchend', ef);
 			$(document).bind('mousemove mouseup touchmove touchend', ef);
+			$(document).bind('keydown', function(e){
+				var $e = jQuery.extend(true, {}, e);
+				// Touch Event인 경우 처리
+				if($e.type.indexOf('touch') >= 0){
+					$e.preventDefault();
+					$e.isTouch = true;
+				}
+				
+				// 이벤트 분류
+				var type = e.type;
+				
+				if(e.keyCode == 27) {
+					// 추가 이벤트 정보 설정
+					$.extend($e, {
+						type: 'drawEvent-' + toolkit.type,
+						callMethod: 'drawCancel',
+						eventType: type,
+						toolkitType: toolkit.type
+					});
+					
+					// PureCanvas Event 호출
+					try{
+						$drawCanvas.trigger($e);
+					}catch(ex){
+						console.warn('drawEvent-%s event error. [%s]', toolkit.type, ex);
+					}
+				}
+			});
 		},
 		
 		/**
@@ -812,6 +840,7 @@
 	 * Pure Canvas - Event
 	 */
 	$(window).on('load', function(){
+		// Resize
 		$(window).on('resize', function(){
 			$('[data-pure-canvas="element"]').each(function(index, element){
 				if($(element).pureCanvas('setting', 'windowResizeEvent')){
@@ -822,6 +851,8 @@
 			});
 		});
 	});
+	
+	
 	
 	/*******************************************************************************************************************************/
 	
@@ -978,7 +1009,7 @@
 					y = e.pageY
 				}
 				// Touch Event일 경우
-				else{
+				else if(e.eventType.indexOf('touch') >= 0){
 					// ThuchEnd인 경우 좌표가 없으므로 공백을 반환한다.
 					if(!e.originalEvent.targetTouches[0]){
 						return {org: '', rate: ''}
@@ -992,7 +1023,10 @@
 					x = tx - cx;
 					y = ty - cy;
 				}
-
+				else{
+					return null;
+				}
+				
 				// 비율에 따른 좌표 계산
 				var rx = Math.round(x / this.getRate(), this.setting.pointFixed);
 				var ry = Math.round(y / this.getRate(), this.setting.pointFixed);
@@ -2623,7 +2657,7 @@
 			}, 100);
 		},
 		drawStart: function(e){
-			console.log(this.getType() + ' drawEnd', e);
+			//console.log(this.getType() + ' drawStart', e);
 			
 			if(!this.isEditing){
 				this.point = e.point;
@@ -2653,7 +2687,7 @@
 					
 					var lines = text.split('\n');
 					var linesNew = [];
-					var textInputWidth = $('[data-pure-canvas-text]').width() - 2;
+					var textInputWidth = $('textarea[data-pure-canvas-text]').width() - 2;
 					
 					var width = 0;
 					var lastj = 0;
@@ -2701,6 +2735,17 @@
 		},
 		drawEnd: function(e){
 			//this.drawStart(e);
+		},
+		drawCancel: function(e){
+			var $text = $('textarea[data-pure-canvas-text]');
+			// Text Editor가 표시 되어 있는 경우 취소 처리
+			if($text.is(':visible')){
+				$text.val('');
+				
+				this.drawStart(e);
+				
+				e.preventDefault();
+			}
 		},
 		
 		draw: function(e){
