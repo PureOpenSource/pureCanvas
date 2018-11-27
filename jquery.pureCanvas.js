@@ -1,5 +1,5 @@
 /*********************************************************************************************
- * PureCanvas. v0.5
+ * PureCanvas. v0.6
  * ===========================================================================================
  * Copyright 2018 Pure OpenSource.
  * Licensed under MIT (https://github.com/PureOpenSource/pureCanvas/blob/master/LICENSE)
@@ -38,7 +38,7 @@
 		this.makeCanvasEvent.call(this);
 	}
 
-	PureCanvas.VERSION = '0.5';
+	PureCanvas.VERSION = '0.6';
 
 	PureCanvas.DEFIN = {
 		// 사용자 옵션으로 호출 가능한 prototype
@@ -2615,6 +2615,20 @@
 				
 				maxWidth: bmw+'px', maxHeight: bmh+'px',
 			});
+			var editorResize = function(){
+				var oldHeight = THIS.$editor.height();
+				THIS.$editor.height(1);
+				var scrolleHeight = THIS.$editor.prop('scrollHeight');
+				
+				if(oldHeight < scrolleHeight){
+					THIS.$editor.height(scrolleHeight + 6);
+				}else{
+					THIS.$editor.height(oldHeight);
+				}
+			};
+			this.$editor.on('keyup resize', function(){
+				editorResize();
+			});
 			
 			if(this.toolkit.font.bold) this.$editor.css('fontWeight', 'bold');
 			if(this.toolkit.font.italic) this.$editor.css('fontStyle', 'italic');
@@ -2643,6 +2657,8 @@
 				
 				THIS.$editor.css({fontSize: fontSize+'px', lineHeight: fontSize+'px'});
 				THIS.toolkit.font.size = Number($this.val());
+				
+				editorResize();
 			});
 			$fontToolbar_fontFamily.find('select').on('change', function(){
 				var $this = $(this);
@@ -2724,7 +2740,7 @@
 						clear: [this.canvasInfo.draw, this.canvasInfo.drawTemp]
 					});
 					
-					this.sendDrawFontData(this.point.rate, text);
+					this.sendDrawFontData(this.point.rate, linesNew.join('\n'));
 				}
 				this.isEditing = false;
 				this.$fontToolbar.remove();
