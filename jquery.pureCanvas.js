@@ -1,5 +1,5 @@
 /*********************************************************************************************
- * PureCanvas. v0.6
+ * PureCanvas. v0.7
  * ===========================================================================================
  * Copyright 2018 Pure OpenSource.
  * Licensed under MIT (https://github.com/PureOpenSource/pureCanvas/blob/master/LICENSE)
@@ -11,7 +11,6 @@
 	/**
 	 * Pure Canvas - Class Definition.
 	 */
-	
 	var PureCanvas = function(element, options){
 		// PureCanvas Div element 정보(createCanvas에서 추가됨)
 		this.$element = $(element);
@@ -37,9 +36,9 @@
 		// Event 생성
 		this.makeCanvasEvent.call(this);
 	}
-
-	PureCanvas.VERSION = '0.6';
-
+	
+	PureCanvas.VERSION = '0.7';
+	
 	PureCanvas.DEFIN = {
 		// 사용자 옵션으로 호출 가능한 prototype
 		optionName: {
@@ -135,7 +134,7 @@
 			}
 		},
 	}
-
+	
 	$.extend(PureCanvas.prototype, {
 		/**
 		 * Create UUID
@@ -178,7 +177,7 @@
 				// Draw Canvas 생성 - 비율에 따른 변경되는 사용자가 임시로 그리고 있는 Canvas
 				draw: {domView: true, resize: true, clearView: false}, //true, true, false
 			}
-
+			
 			// Style & Attribute setting, append element
 			this.$element.css({'display': 'table'}).attr('data-pure-canvas', 'element');
 			var $main = $('<div></div>').attr('data-pure-canvas', 'main')
@@ -206,7 +205,7 @@
 				data.canvas = $canvas.get(0);
 				data.context = $canvas.get(0).getContext('2d');
 			}
-
+			
 			//console.debug(this.canvasInfo);
 		},
 		
@@ -286,7 +285,7 @@
 					eventType: type,
 					toolkitType: toolkit.type
 				});
-
+				
 				//console.log(e.eventType, e.type, e.callMethod, e.timeStamp, e);
 				// PureCanvas Event 호출
 				try{
@@ -355,7 +354,7 @@
 				this.loadingBarDiv.css({width: this.$element.width(), height: this.$element.height()});
 				var top = (this.$element.height() / 2) - messageBox.height();
 				messageBox.css({'margin-top': top}).html(this.options.loadingBar.message);
-
+				
 				if(this.loadingBarDiv.css('display') == 'none'){
 					// fade show
 					this.loadingBarDiv.fadeIn(300);
@@ -470,7 +469,7 @@
 		
 		draw: function(toolkitData){
 			if(typeof toolkitData != 'object') return;
-
+			
 			// 이벤트 생성 및 추가 정보 설정
 			var event = $.Event('drawEvent-' + toolkitData.type, {
 				callMethod: 'draw',
@@ -500,6 +499,9 @@
 		return this.setting[targetName] ? this.setting[targetName].call(this, value) : undefined;
 	}	
 	$.extend(PureCanvas.prototype.setting, {
+		/**
+		 * 그리기 권한 설정
+		 */
 		authForDraw: function(value){
 			this.options.setting.authForDraw = value;
 			
@@ -512,16 +514,25 @@
 			
 			console.debug('setting setting.authForDraw : ' + value);
 		},
+		/**
+		 * 포인터 그리기
+		 */
 		pointerForDraw: function(value){
 			this.options.setting.pointerForDraw = value;
 			
 			console.debug('setting setting.pointerForDraw : ' + value);
 		},
+		/**
+		 * 포인터 마우스 클릭 시 전송 여부
+		 */
 		pointerDownSend: function(value){
 			this.options.setting.pointerDownSend = value;
 			
 			console.debug('setting setting.pointerDownSend : ' + value);
 		},
+		/**
+		 * 배경 이미지 설정
+		 */
 		backgroundImage: function(value){
 			var THIS = this;
 			var callbackFunction;
@@ -565,7 +576,7 @@
 					// re draw 여부
 					isSetting: true
 				}
-
+				
 				THIS.historyInfo = {
 					index: -1,
 					drawData: []
@@ -574,9 +585,12 @@
 				// canvas resize 호출
 				THIS.resize();
 				
+				// TextEditor가 표시 되어 있는 경우 없애기
+				$('textarea[data-pure-canvas-text], div[data-pure-canvas-text-toolbar]').remove();
+				
 				var eDate = new Date();
 				console.debug("image loading time: %dms", eDate - sDate);
-
+				
 				try{
 					// 백그라운드 이미지 출력 완료 이벤트 발생
 					if(callbackFunction && typeof callbackFunction == 'function'){
@@ -585,7 +599,7 @@
 				}catch(ex){
 					console.warn('callbackFunction event error. [%s]', ex);
 				}
-			
+				
 				THIS.loadingBar.call(THIS, 'hide');
 			}
 			image.onerror = function(){
@@ -594,6 +608,9 @@
 			
 			image.src = value;
 		},
+		/**
+		 * 배경 이미지 크기 보기 타입
+		 */
 		resizeType: function(value){
 			// page(쪽맞춤), rate(비율)
 			if(typeof value == 'string'){
@@ -610,20 +627,26 @@
 				this.options.setting.rateVal = value.rateVal ? value.rateVal / 100 : 1;
 			}
 			this.options.setting.zoom = 1;
-
+			
 			// canvas resize 호출
 			this.imageInfo.isSetting = true;
 			this.resize();
 			
 			console.debug('setting resizeType: ' + this.options.setting.resizeType, this.options.setting.rateVal);
 		},
+		/**
+		 * 확대
+		 */
 		zoom: function(value){
 			this.options.setting.zoom = value;
-
+			
 			// canvas resize 호출
 			this.imageInfo.isSetting = true;
 			this.resize();
 		},
+		/**
+		 * 스크롤
+		 */
 		scroll: function(value){
 			this.pureCanvasToolkit.recvScrollData(value);
 		}
@@ -670,7 +693,7 @@
 			// 비율이 100%가 넘는 경우 원본 크기로 표시 
 			//if(rateVal > 1) rateVal = 1;
 			this.options.setting.rateVal = rateVal;
-
+			
 			// 이미지 원본 크기 * 비율 = 비율에 맞는 이미지 크기
 			var width = imageInfo.orgImageWidth * this.getRate();
 			var height = imageInfo.orgImageHeight * this.getRate();
@@ -707,7 +730,7 @@
 						canvas.canvas.height = height;
 					}
 				});
-
+				
 				var mainCtx = this.canvasInfo.main.context;
 				var bgCtx = this.canvasInfo.bg.context;
 				
@@ -818,7 +841,7 @@
 		
 		var data    = $this.data('pure.pureCanvas');
 		var options = $.extend(true, {}, PureCanvas.DEFAULTS, $this.data, typeof option == 'object' && option);
-
+		
 		if(!data){
 			$this.data('pure.pureCanvas', (data = new PureCanvas(this, options)));
 			data.pureCanvasToolkit = new $.pureCanvas.toolkit(this);
@@ -881,7 +904,7 @@
 		// Toolit Event 생성
 		this.makeEvent();
 	}
-
+	
 	$.extend($.pureCanvas.toolkit, {
 		prototype: {
 			/**
@@ -1077,11 +1100,11 @@
 				var r = parseInt(hex.substring(0,2), 16);
 				var g = parseInt(hex.substring(2,4), 16);
 				var b = parseInt(hex.substring(4,6), 16);
-
+				
 				if(!opacity) opacity = 100;
 				return "rgba("+r+","+g+","+b+","+opacity/100+")";
 			},
-
+			
 			/*
 			 * rgba(xxx, xxx, xxx, x) 값을 hex(#000000) 값으로 변환
 			 */
@@ -1108,7 +1131,7 @@
 			 */
 			getDrawStyle: function(){
 				var style = $.extend({}, this.toolkit.style);
-
+				
 				style.orgLineWidth = style.lineWidth;
 				style.lineWidth = style.orgLineWidth * this.getRate();
 				
@@ -1235,7 +1258,7 @@
 			// 중심점에서 마우스 위치가 X, Y에서 더 큰쪽으로 반지름을 구한다????
 			var radius = point0.x - point1.x;
 			if(radius < 0) radius = radius * -1;
-
+			
 			var radiusY = point0.y - point1.y;
 			if(radiusY < 0) radiusY = radiusY * -1;
 			if(radius < radiusY) radius = radiusY;
@@ -1275,7 +1298,7 @@
 				}
 				ctx.moveTo(point0.x, point0.y);
 				ctx.lineTo(point1.x, point1.y);
-
+				
 				ctx.lineWidth = style.lineWidth;
 				ctx.lineCap = 'round';
 				ctx.lineJoin = 'round';
@@ -1319,7 +1342,7 @@
 			
 			var point1 = this.getPointSplit(drawPoints[0]);
 			var point2 = this.getPointSplit(drawPoints[1]);
-
+			
 			if(!style.isNotClear){
 				ctx.clearCanvas();
 			}
@@ -1483,7 +1506,7 @@
 		},
 		drawEnd: function(e){
 			//console.log(this.getType() + ' drawEnd');
-
+			
 			if(this.isDrawing){
 				this.sendScrollData();
 			}
@@ -1528,7 +1551,7 @@
 		},
 		drawing: function(e){
 			//console.log(this.getType() + ' drawing');
-
+			
 			var drawStyle = this.getCustomStyleLine(this.getDrawStyle());
 			var drawTempStyle = this.getCustomStyleLine(this.toolkit.style);
 			
@@ -2488,7 +2511,6 @@
 	 * Text
 	 *******************************************************************************/
 	var TextEditor = function(){
-		this.isEditing = false;
 		this.downPoint = null;
 		
 		this.$editorContainer = null;
@@ -2562,7 +2584,7 @@
 			// $container 길이 + margin 길이   downPoint + 항목 길이
 			
 			/** Font 툴바 **/
-			this.$fontToolbar = $('<div></div>').css({
+			this.$fontToolbar = $('<div data-pure-canvas-text-toolbar></div>').css({
 				backgroundColor: 'rgba(239,239,239,1)',
 				border: '1px solid #9c9c9c', borderRadius: '5px',
 				
@@ -2675,13 +2697,13 @@
 		drawStart: function(e){
 			//console.log(this.getType() + ' drawStart', e);
 			
-			if(!this.isEditing){
+			var $text = $('textarea[data-pure-canvas-text]');
+			// Text Editor가 표시 되어 있는 경우
+			if(!$text.is(':visible')){
 				this.point = e.point;
 				this.downPoint = this.getPointSplit(e.point.org);
 				
 				this.viewEditor();
-				
-				this.isEditing = true;
 			}
 			else{
 				var text = this.$editor.val();
@@ -2742,7 +2764,6 @@
 					
 					this.sendDrawFontData(this.point.rate, linesNew.join('\n'));
 				}
-				this.isEditing = false;
 				this.$fontToolbar.remove();
 				this.$fontToolbar = null;
 				this.$editor.remove();
