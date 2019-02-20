@@ -181,7 +181,7 @@
 			// Style & Attribute setting, append element
 			this.$element.css({'display': 'table'}).attr('data-pure-canvas', 'element');
 			var $main = $('<div></div>').attr('data-pure-canvas', 'main')
-				.css({'display': 'block', 'position': 'absolute', 'overflow': 'auto', 'width': this.options.setting.mainStyle.width, 'height': 'inherit'})
+				.css({'display': 'block', 'position': 'absolute', 'overflow': 'hidden', 'width': this.options.setting.mainStyle.width, 'height': '100%'})
 				.appendTo(this.$element); 
 			var $container = $('<div></div>').attr('data-pure-canvas', 'container')
 				.css(this.options.setting.containerStyle)
@@ -1465,7 +1465,7 @@
 			var THIS = this;
 			// scroll Event 추가
 			this.$main.on('scroll', function(e){
-				if(!THIS.isDrawing){
+				if(THIS.toolkit.type == THIS.getType() && !THIS.isDrawing){
 					// Scroll Event의 과다 호출을 줄이기 위해 300ms 중지된 상태에서 이벤트를 호출한다.
 					clearTimeout(THIS.eventCaller);
 					
@@ -1480,6 +1480,11 @@
 					THIS.eventCaller = setTimeout(function(){
 						THIS.sendScrollData(e);
 					}, 300);
+				}else{
+					e.preventDefault();
+					e.stopPropagation();
+					e.returnValue = false;
+					return false;
 				}
 			});	
 		},
